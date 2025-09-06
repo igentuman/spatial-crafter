@@ -38,6 +38,9 @@ public class CommonConfig {
 
     public static class General {
         public final ForgeConfigSpec.ConfigValue<Integer> fe_per_tick;
+        public final ForgeConfigSpec.IntValue recipe_energy_multiplier;
+        public final ForgeConfigSpec.DoubleValue recipe_time_multiplier;
+        public final ForgeConfigSpec.BooleanValue enable_entity_spawning;
 
         public General(ForgeConfigSpec.Builder builder) {
             builder.push("General");
@@ -45,6 +48,22 @@ public class CommonConfig {
             fe_per_tick = builder
                     .comment("Base FE per tick consumption")
                     .define("fe_per_tick", 5000);
+
+            builder.pop();
+            
+            builder.push("Recipes");
+            
+            recipe_energy_multiplier = builder
+                    .comment("Multiplier for recipe energy consumption")
+                    .defineInRange("recipe_energy_multiplier", 1, 1, 10);
+                    
+            recipe_time_multiplier = builder
+                    .comment("Multiplier for recipe processing time")
+                    .defineInRange("recipe_time_multiplier", 1.0, 0.1, 5.0);
+                    
+            enable_entity_spawning = builder
+                    .comment("Enable entity spawning from recipes")
+                    .define("enable_entity_spawning", true);
 
             builder.pop();
         }

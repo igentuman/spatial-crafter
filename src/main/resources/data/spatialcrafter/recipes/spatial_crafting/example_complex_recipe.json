@@ -1,0 +1,27 @@
+{
+  "type": "spatialcrafter:spatial_crafting",
+  "multiblock": "spatialcrafter:spatial_structures/mekanism_boiler.nbt",
+  "processing_time": 600,
+  "energy_consumption": 5000,
+  "outputs": [
+    {
+      "item": "minecraft:nether_star",
+      "count": 1,
+      "nbt": "{display:{Name:'{\"text\":\"Spatial Star\",\"color\":\"purple\"}',Lore:['{\"text\":\"Crafted with spatial energy\",\"color\":\"gray\"}']}}"
+    },
+    {
+      "item": "minecraft:emerald",
+      "count": 2,
+      "nbt": "{Enchantments:[{id:\"minecraft:unbreaking\",lvl:3}]}"
+    }
+  ],
+  "entity_outputs": [
+    {
+      "entity": "minecraft:experience_orb",
+      "count": 5,
+      "position": [0, 1, 0],
+      "nbt": "{Value:100}"
+    }
+  ],
+  "global_nbt": "{SpatialCrafted:1b}"
+}

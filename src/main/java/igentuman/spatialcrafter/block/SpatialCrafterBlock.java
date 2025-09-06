@@ -19,6 +19,7 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
@@ -34,7 +35,7 @@ import net.minecraftforge.network.NetworkHooks;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class SpatialCrafterBlock extends Block implements EntityBlock {
+public class SpatialCrafterBlock extends HorizontalDirectionalBlock implements EntityBlock {
 
     private static final VoxelShape RENDER_SHAPE = Shapes.box(0.1, 0.1, 0.1, 0.9, 0.9, 0.9);
 
@@ -87,12 +88,15 @@ public class SpatialCrafterBlock extends Block implements EntityBlock {
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         super.createBlockStateDefinition(builder);
         builder.add(BlockStateProperties.POWERED);
+        builder.add(BlockStateProperties.HORIZONTAL_FACING);
     }
 
     @Nullable
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
-        return super.getStateForPlacement(context).setValue(BlockStateProperties.POWERED, false);
+        return super.getStateForPlacement(context)
+                .setValue(BlockStateProperties.POWERED, false)
+                .setValue(BlockStateProperties.HORIZONTAL_FACING, context.getHorizontalDirection().getOpposite());
     }
 
     @SuppressWarnings("deprecation")

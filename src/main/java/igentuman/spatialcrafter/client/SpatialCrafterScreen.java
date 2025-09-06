@@ -1,8 +1,11 @@
 package igentuman.spatialcrafter.client;
 
 import igentuman.spatialcrafter.container.SpatialCrafterContainer;
+import igentuman.spatialcrafter.network.NetworkHandler;
+import igentuman.spatialcrafter.network.SizeChangePacket;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
@@ -14,6 +17,8 @@ import static igentuman.spatialcrafter.Main.rl;
 public class SpatialCrafterScreen extends AbstractContainerScreen<SpatialCrafterContainer> {
 
     private final ResourceLocation GUI = rl("textures/gui/spatial_crafter.png");
+    private Button decreaseSizeButton;
+    private Button increaseSizeButton;
 
     public SpatialCrafterScreen(SpatialCrafterContainer container, Inventory inv, Component name) {
         super(container, inv, name);
@@ -34,11 +39,43 @@ public class SpatialCrafterScreen extends AbstractContainerScreen<SpatialCrafter
 
     protected void init() {
         super.init();
+        
+        int relX = (this.width - this.imageWidth) / 2;
+        int relY = (this.height - this.imageHeight) / 2;
+        
+        // Decrease size button (-)
+        decreaseSizeButton = Button.builder(Component.literal("-"), button -> {
+            int currentSize = menu.getSize();
+            if (currentSize > 1) {
+                NetworkHandler.INSTANCE.sendToServer(new SizeChangePacket(menu.getBlockEntity().getBlockPos(), currentSize - 1));
+            }
+        })
+        .bounds(relX + 10, relY + 20, 20, 20)
+        .build();
+        
+        // Increase size button (+)
+        increaseSizeButton = Button.builder(Component.literal("+"), button -> {
+            int currentSize = menu.getSize();
+            if (currentSize < 32) {
+                NetworkHandler.INSTANCE.sendToServer(new SizeChangePacket(menu.getBlockEntity().getBlockPos(), currentSize + 1));
+            }
+        })
+        .bounds(relX + 150, relY + 20, 20, 20)
+        .build();
+        
+        addRenderableWidget(decreaseSizeButton);
+        addRenderableWidget(increaseSizeButton);
     }
 
     public void containerTick() {
         super.containerTick();
-
+        
+        // Update button states based on current size
+        if (decreaseSizeButton != null && increaseSizeButton != null) {
+            int currentSize = menu.getSize();
+            decreaseSizeButton.active = currentSize > 1;
+            increaseSizeButton.active = currentSize < 32;
+        }
     }
 
     public void drawEnergyBar(GuiGraphics graphics)
@@ -49,6 +86,10 @@ public class SpatialCrafterScreen extends AbstractContainerScreen<SpatialCrafter
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawCenteredString(Minecraft.getInstance().font, I18n.get("gui.block_booster"), imageWidth/2, 4, 0xffffff );
+
+        // Display current size
+        String sizeText = "Size: " + menu.getSize();
+        graphics.drawCenteredString(Minecraft.getInstance().font, Component.literal(sizeText), imageWidth/2, 25, 0xffffff);
 
         if(menu.isDisabled()) {
             graphics.drawString(Minecraft.getInstance().font, Component.translatable("gui.block_booster.disabled"), 10, 65, 0xffffff);

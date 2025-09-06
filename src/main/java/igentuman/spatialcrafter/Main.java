@@ -1,10 +1,13 @@
 package igentuman.spatialcrafter;
 
+import igentuman.spatialcrafter.client.SpatialCrafterOverlayHandler;
 import igentuman.spatialcrafter.client.SpatialCrafterScreen;
+import igentuman.spatialcrafter.network.NetworkHandler;
 import igentuman.spatialcrafter.util.MultiblocksProvider;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -34,13 +37,14 @@ public class Main
     public Main(FMLJavaModLoadingContext context) {
         Setup.init();
         context.getModEventBus().addListener(Main::init);
+        context.getModEventBus().addListener(this::commonSetup);
         context.getModEventBus().addListener(this::addCreative);
         CommonConfig.register();
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {
         event.enqueueWork(() -> {
-            //NetworkHandler.registerPackets();
+            NetworkHandler.registerPackets();
         });
     }
 

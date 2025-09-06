@@ -30,6 +30,7 @@ import net.minecraftforge.client.model.data.ModelData;
 import org.joml.Quaternionf;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.List;
 import java.util.Map;
 
 import static igentuman.spatialcrafter.Main.MODID;
@@ -56,7 +57,7 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
     private IngredientsButton ingredientsButton;
 
     public MultiblockStructureCategory(IGuiHelper guiHelper) {
-        this.background = guiHelper.createBlankDrawable(160, 120);
+        this.background = guiHelper.createBlankDrawable(180, 140);
         this.icon = guiHelper.createDrawableIngredient(VanillaTypes.ITEM_STACK, new ItemStack(SPATIAL_CRAFTER_ITEM.get()));
         this.title = Component.translatable("jei.category." + MODID + ".multiblock_structure");
         this.renderer = new MultiblockRenderer();
@@ -88,6 +89,18 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
         builder.addInvisibleIngredients(RecipeIngredientRole.OUTPUT).addItemLike(SPATIAL_CRAFTER_ITEM.get());
         builder.addInvisibleIngredients(RecipeIngredientRole.OUTPUT).addIngredients(recipe.getIngredients());
         builder.addInvisibleIngredients(RecipeIngredientRole.INPUT).addIngredients(recipe.getIngredients());
+        
+        // Add recipe outputs if available
+        if (recipe.hasSpatialRecipe()) {
+            List<ItemStack> recipeOutputs = recipe.getRecipeOutputs();
+            for (int i = 0; i < recipeOutputs.size() && i < 6; i++) { // Limit to 6 outputs for display
+                int x = 120 + (i % 2) * 18;
+                int y = 20 + (i / 2) * 18;
+                builder.addSlot(RecipeIngredientRole.OUTPUT, x, y)
+                       .addItemStack(recipeOutputs.get(i));
+            }
+        }
+        
         ingredientsButton = IngredientsButton.create(recipe);
         ingredientsButton.updateBounds(new Rect2i(5, 15, 10, 10));
     }
@@ -102,6 +115,26 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
             ingredientsButton.drawTooltips(graphics, (int) mouseX, (int) mouseY);
         }
         graphics.drawString(font, __(recipe.getName()), 5, 2, 0xFFFFFFFF);
+        
+        // Draw recipe information if available
+        if (recipe.hasSpatialRecipe()) {
+            // Draw "Outputs:" label
+            graphics.drawString(font, "Outputs:", 120, 10, 0xFFFFFFFF);
+            
+            // Draw processing time and energy consumption
+            int processingTime = recipe.getProcessingTime();
+            int energyConsumption = recipe.getEnergyConsumption();
+            
+            if (processingTime > 0) {
+                String timeText = "Time: " + (processingTime / 20.0f) + "s";
+                graphics.drawString(font, timeText, 5, 125, 0xFFFFFFFF);
+            }
+            
+            if (energyConsumption > 0) {
+                String energyText = "Energy: " + energyConsumption + " FE";
+                graphics.drawString(font, energyText, 90, 125, 0xFFFFFFFF);
+            }
+        }
         long window = Minecraft.getInstance().getWindow().getWindow();
         boolean leftMouseDown = GLFW.glfwGetMouseButton(window, GLFW.GLFW_MOUSE_BUTTON_LEFT)
                 == GLFW.GLFW_PRESS;

@@ -1,5 +1,6 @@
 package igentuman.spatialcrafter.integration.jei;
 
+import igentuman.spatialcrafter.recipe.SpatialCrafterRecipe;
 import igentuman.spatialcrafter.util.MultiblockStructure;
 import mezz.jei.api.runtime.IIngredientManager;
 import net.minecraft.core.BlockPos;
@@ -22,6 +23,7 @@ public class MultiblockStructureRecipe {
     public int currentLayer = 0;
     public List<ItemStack> outputs = new ArrayList<>();
     private IIngredientManager ingredientManager;
+    private SpatialCrafterRecipe spatialRecipe;
 
     public MultiblockStructureRecipe(ResourceLocation id, CompoundTag structureNbt, String name, IIngredientManager ingredientManager) {
         this.id = id;
@@ -81,5 +83,34 @@ public class MultiblockStructureRecipe {
 
     public IIngredientManager getIngredientManager() {
         return ingredientManager;
+    }
+    
+    public void setSpatialRecipe(SpatialCrafterRecipe spatialRecipe) {
+        this.spatialRecipe = spatialRecipe;
+        // Update outputs to include recipe outputs
+        if (spatialRecipe != null && !spatialRecipe.getOutputs().isEmpty()) {
+            this.outputs.clear();
+            this.outputs.addAll(spatialRecipe.getOutputs());
+        }
+    }
+    
+    public SpatialCrafterRecipe getSpatialRecipe() {
+        return spatialRecipe;
+    }
+    
+    public boolean hasSpatialRecipe() {
+        return spatialRecipe != null;
+    }
+    
+    public List<ItemStack> getRecipeOutputs() {
+        return spatialRecipe != null ? spatialRecipe.getOutputs() : new ArrayList<>();
+    }
+    
+    public int getProcessingTime() {
+        return spatialRecipe != null ? spatialRecipe.getProcessingTime() : 0;
+    }
+    
+    public int getEnergyConsumption() {
+        return spatialRecipe != null ? spatialRecipe.getEnergyConsumption() : 0;
     }
 }

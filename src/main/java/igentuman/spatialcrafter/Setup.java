@@ -3,9 +3,14 @@ package igentuman.spatialcrafter;
 import igentuman.spatialcrafter.block.SpatialCrafterBlock;
 import igentuman.spatialcrafter.block.SpatialCrafterBlockEntity;
 import igentuman.spatialcrafter.container.SpatialCrafterContainer;
+import igentuman.spatialcrafter.recipe.SpatialCrafterRecipe;
+import igentuman.spatialcrafter.recipe.SpatialCrafterRecipeSerializer;
+import igentuman.spatialcrafter.recipe.SpatialCrafterRecipeType;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -24,6 +29,14 @@ public class Setup {
     private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
     private static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, MODID);
     private static final DeferredRegister<MenuType<?>> CONTAINERS = DeferredRegister.create(ForgeRegistries.MENU_TYPES, MODID);
+    
+    // Recipe Types
+    public static final DeferredRegister<RecipeType<?>> RECIPE_TYPES = 
+        DeferredRegister.create(ForgeRegistries.RECIPE_TYPES, MODID);
+
+    // Recipe Serializers
+    public static final DeferredRegister<RecipeSerializer<?>> RECIPE_SERIALIZERS = 
+        DeferredRegister.create(ForgeRegistries.RECIPE_SERIALIZERS, MODID);
 
 
     public static final BlockBehaviour.Properties BLOCK_PROPERTIES = BlockBehaviour.Properties.of().strength(2f).requiresCorrectToolForDrops();
@@ -38,6 +51,13 @@ public class Setup {
     public static final RegistryObject<MenuType<SpatialCrafterContainer>> SPATIAL_CRAFTER_CONTAINER = CONTAINERS.register("spatial_crafter",
             () -> IForgeMenuType.create((windowId, inv, data) -> new SpatialCrafterContainer(windowId, data.readBlockPos(), inv, inv.player)));
 
+    // Recipe registrations
+    public static final RegistryObject<RecipeType<SpatialCrafterRecipe>> SPATIAL_CRAFTING_TYPE = 
+        RECIPE_TYPES.register("spatial_crafting", () -> SpatialCrafterRecipeType.INSTANCE);
+
+    public static final RegistryObject<RecipeSerializer<SpatialCrafterRecipe>> SPATIAL_CRAFTING_SERIALIZER = 
+        RECIPE_SERIALIZERS.register("spatial_crafting", () -> SpatialCrafterRecipeSerializer.INSTANCE);
+
 
     public static void init() {
         IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
@@ -45,6 +65,8 @@ public class Setup {
         ITEMS.register(bus);
         BLOCK_ENTITIES.register(bus);
         CONTAINERS.register(bus);
+        RECIPE_TYPES.register(bus);
+        RECIPE_SERIALIZERS.register(bus);
     }
 
 

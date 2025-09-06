@@ -6,10 +6,13 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerLevelAccess;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.energy.IEnergyStorage;
+import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.items.SlotItemHandler;
 
 import java.util.HashMap;
 
@@ -20,11 +23,34 @@ public class SpatialCrafterContainer extends AbstractContainerMenu {
 
     private SpatialCrafterBlockEntity blockEntity;
     private Player playerEntity;
+    private final IItemHandler itemHandler;
 
     public SpatialCrafterContainer(int windowId, BlockPos pos, Inventory playerInventory, Player player) {
         super(SPATIAL_CRAFTER_CONTAINER.get(), windowId);
         blockEntity = (SpatialCrafterBlockEntity)player.getCommandSenderWorld().getBlockEntity(pos);
         this.playerEntity = player;
+        this.itemHandler = blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(null);
+        if (itemHandler != null) {
+            addMultibuilderInventory();
+        }
+        addPlayerInventory(playerEntity.getInventory());
+    }
+
+    private void addMultibuilderInventory() {
+        int index = -1;
+        for (int row = 0; row < 5; row++) {
+            index++;
+            this.addSlot(new SlotItemHandler(itemHandler, index, 5 * 18, 13 + row * 18));
+        }
+    }
+
+    private void addPlayerInventory(Inventory playerInventory) {
+        int yOffset = 107;
+        for (int i = 0; i < 3; ++i) {
+            for (int l = 0; l < 9; ++l) {
+                this.addSlot(new Slot(playerInventory, l + i * 9 + 9, 5 + l * 18, yOffset + i * 18));
+            }
+        }
     }
 
     public int getEnergyScaled(int scale)
@@ -59,5 +85,13 @@ public class SpatialCrafterContainer extends AbstractContainerMenu {
 
     public int getMaxEnergy() {
         return blockEntity.getMaxEnergy();
+    }
+    
+    public int getSize() {
+        return blockEntity.getSize();
+    }
+    
+    public SpatialCrafterBlockEntity getBlockEntity() {
+        return blockEntity;
     }
 }

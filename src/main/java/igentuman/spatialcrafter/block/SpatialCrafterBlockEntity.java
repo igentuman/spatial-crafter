@@ -1,22 +1,35 @@
 package igentuman.spatialcrafter.block;
 
 import igentuman.spatialcrafter.CommonConfig;
+import igentuman.spatialcrafter.client.SpatialCrafterOverlayHandler;
+import igentuman.spatialcrafter.recipe.SpatialCrafterRecipe;
+import igentuman.spatialcrafter.recipe.SpatialCrafterRecipeManager;
 import igentuman.spatialcrafter.util.CustomEnergyStorage;
+import igentuman.spatialcrafter.util.MultiblockStructure;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.energy.IEnergyStorage;
+import net.minecraftforge.fml.DistExecutor;
+import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.items.ItemStackHandler;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Optional;
 
 import static igentuman.spatialcrafter.Setup.SPATIAL_CRAFTER_BE;
 
@@ -24,14 +37,61 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
 
     private final CustomEnergyStorage energy = createEnergyStorage();
     private final LazyOptional<IEnergyStorage> energyHandler = LazyOptional.of(() -> energy);
+    
+    // Recipe processing fields
+    private final ItemStackHandler itemHandler = createItemHandler();
+    private final LazyOptional<IItemHandler> itemHandlerLazyOptional = LazyOptional.of(() -> itemHandler);
+    private SpatialCrafterRecipe currentRecipe;
+    private int processingProgress = 0;
+    private boolean isProcessing = false;
+    
+    // Scan area size field
+    private int size = 5;
+
+    private int ensureOddSize(int inputSize) {
+        // Clamp to valid range (1-31, keeping it odd)
+        int clampedSize = Math.max(1, Math.min(31, inputSize));
+        
+        // Make sure it's odd
+        if (clampedSize % 2 == 0) {
+            // If even, subtract 1 to make it odd (but ensure it doesn't go below 1)
+            clampedSize = Math.max(1, clampedSize - 1);
+        }
+        
+        return clampedSize;
+    }
 
     public SpatialCrafterBlockEntity(BlockPos pos, BlockState state) {
         super(SPATIAL_CRAFTER_BE.get(), pos, state);
+    }
+    
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        if (level != null && level.isClientSide) {
+            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> 
+                SpatialCrafterOverlayHandler.addSpatialCrafterBlock(worldPosition));
+        }
     }
 
     @Override
     public void setRemoved() {
         super.setRemoved();
+        energyHandler.invalidate();
+        itemHandlerLazyOptional.invalidate();
+        if (level != null && level.isClientSide) {
+            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> 
+                SpatialCrafterOverlayHandler.removeSpatialCrafterBlock(worldPosition));
+        }
+    }
+    
+    private ItemStackHandler createItemHandler() {
+        return new ItemStackHandler(5) { // 5 slot output inventory
+            @Override
+            protected void onContentsChanged(int slot) {
+                setChanged();
+            }
+        };
     }
 
     public int getEnergy()
@@ -61,6 +121,12 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
     public void tickServer() {
         if(level == null) return;
         tick++;
+        
+        // Process crafting
+        if (isProcessing) {
+            processCrafting();
+        }
+        
         if(tick % 10 == 0) {
             if(!level.isClientSide()) {
                 boolean lastState = isDisabled;
@@ -73,6 +139,104 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
                 }
             }
         }
+    }
+    
+    public void startCrafting(MultiblockStructure structure) {
+        if (level == null || isProcessing) return;
+        
+        Optional<SpatialCrafterRecipe> recipe = SpatialCrafterRecipeManager.findRecipe(level, structure);
+        if (recipe.isPresent()) {
+            SpatialCrafterRecipe craftingRecipe = recipe.get();
+            
+            // Apply config multipliers
+            int adjustedEnergyConsumption = (int) (craftingRecipe.getEnergyConsumption() * CommonConfig.GENERAL.recipe_energy_multiplier.get());
+            
+            // Check if we have enough energy
+            if (energy.getEnergyStored() >= adjustedEnergyConsumption) {
+                currentRecipe = craftingRecipe;
+                processingProgress = 0;
+                isProcessing = true;
+                setChanged();
+            }
+        }
+    }
+
+    private void processCrafting() {
+        if (!isProcessing || currentRecipe == null || level == null) return;
+        
+        processingProgress++;
+        
+        // Apply config multipliers
+        int adjustedEnergyConsumption = (int) (currentRecipe.getEnergyConsumption() * CommonConfig.GENERAL.recipe_energy_multiplier.get());
+        int adjustedProcessingTime = (int) (currentRecipe.getProcessingTime() * CommonConfig.GENERAL.recipe_time_multiplier.get());
+        
+        // Consume energy per tick
+        int energyPerTick = adjustedEnergyConsumption / adjustedProcessingTime;
+        if (energy.getEnergyStored() >= energyPerTick) {
+            energy.consumeEnergy(energyPerTick);
+        } else {
+            // Not enough energy, pause processing
+            return;
+        }
+        
+        if (processingProgress >= adjustedProcessingTime) {
+            completeCrafting();
+        }
+        
+        setChanged();
+    }
+
+    private void completeCrafting() {
+        if (currentRecipe == null || level == null) return;
+        
+        // Produce item outputs
+        for (ItemStack output : currentRecipe.getOutputs()) {
+            ItemStack result = output.copy();
+            
+            // Apply global NBT if present
+            if (!currentRecipe.getOutputNbt().isEmpty()) {
+                CompoundTag existingNbt = result.getOrCreateTag();
+                existingNbt.merge(currentRecipe.getOutputNbt());
+            }
+            
+            // Try to insert into inventory
+            for (int i = 0; i < itemHandler.getSlots(); i++) {
+                result = itemHandler.insertItem(i, result, false);
+                if (result.isEmpty()) break;
+            }
+            
+            // If inventory is full, drop items
+            if (!result.isEmpty()) {
+                Block.popResource(level, worldPosition.above(), result);
+            }
+        }
+        
+        // Spawn entities (if enabled in config)
+        if (CommonConfig.GENERAL.enable_entity_spawning.get()) {
+            for (SpatialCrafterRecipe.EntityOutput entityOutput : currentRecipe.getEntityOutputs()) {
+                for (int i = 0; i < entityOutput.getCount(); i++) {
+                    Entity entity = entityOutput.getEntityType().create(level);
+                    if (entity != null) {
+                        // Apply NBT data
+                        if (!entityOutput.getNbt().isEmpty()) {
+                            entity.load(entityOutput.getNbt());
+                        }
+                        
+                        // Position entity
+                        BlockPos spawnPos = worldPosition.offset(entityOutput.getRelativePos());
+                        entity.setPos(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5);
+                        
+                        level.addFreshEntity(entity);
+                    }
+                }
+            }
+        }
+        
+        // Reset processing state
+        currentRecipe = null;
+        processingProgress = 0;
+        isProcessing = false;
+        setChanged();
     }
 
     private CustomEnergyStorage createEnergyStorage() {
@@ -120,6 +284,13 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
     private void saveClientData(CompoundTag tag) {
         tag.put("Energy", energy.serializeNBT());
         tag.putBoolean("isDisabled", isDisabled);
+        tag.put("Inventory", itemHandler.serializeNBT());
+        tag.putBoolean("isProcessing", isProcessing);
+        tag.putInt("processingProgress", processingProgress);
+        tag.putInt("size", size);
+        if (currentRecipe != null) {
+            tag.putString("currentRecipe", currentRecipe.getId().toString());
+        }
     }
 
     private void loadClientData(CompoundTag tag) {
@@ -127,7 +298,22 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
             energy.deserializeNBT(tag.get("Energy"));
         }
         isDisabled = tag.getBoolean("isDisabled");
-
+        if (tag.contains("Inventory")) {
+            itemHandler.deserializeNBT(tag.getCompound("Inventory"));
+        }
+        isProcessing = tag.getBoolean("isProcessing");
+        processingProgress = tag.getInt("processingProgress");
+        size = tag.contains("size") ? ensureOddSize(tag.getInt("size")) : 5;
+        
+        if (tag.contains("currentRecipe") && level != null) {
+            ResourceLocation recipeId = ResourceLocation.tryParse(tag.getString("currentRecipe"));
+            if (recipeId != null) {
+                currentRecipe = level.getRecipeManager().byKey(recipeId)
+                        .filter(recipe -> recipe instanceof SpatialCrafterRecipe)
+                        .map(recipe -> (SpatialCrafterRecipe) recipe)
+                        .orElse(null);
+            }
+        }
     }
 
     @Override
@@ -136,6 +322,17 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
             energy.deserializeNBT(tag.get("Energy"));
         }
         isDisabled = tag.getBoolean("isDisabled");
+        if (tag.contains("Inventory")) {
+            itemHandler.deserializeNBT(tag.getCompound("Inventory"));
+        }
+        isProcessing = tag.getBoolean("isProcessing");
+        processingProgress = tag.getInt("processingProgress");
+        size = tag.contains("size") ? ensureOddSize(tag.getInt("size")) : 5;
+        
+        if (tag.contains("currentRecipe")) {
+            ResourceLocation recipeId = ResourceLocation.tryParse(tag.getString("currentRecipe"));
+            // Recipe will be resolved when level is available
+        }
         super.load(tag);
     }
 
@@ -143,6 +340,13 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
     public void saveAdditional(CompoundTag tag) {
        tag.put("Energy", energy.serializeNBT());
         tag.putBoolean("isDisabled", isDisabled);
+        tag.put("Inventory", itemHandler.serializeNBT());
+        tag.putBoolean("isProcessing", isProcessing);
+        tag.putInt("processingProgress", processingProgress);
+        tag.putInt("size", size);
+        if (currentRecipe != null) {
+            tag.putString("currentRecipe", currentRecipe.getId().toString());
+        }
     }
 
     @Nonnull
@@ -150,6 +354,9 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
     public <T> LazyOptional<T> getCapability(@Nonnull Capability<T> cap, @Nullable Direction side) {
         if (cap == ForgeCapabilities.ENERGY) {
             return energyHandler.cast();
+        }
+        if (cap == ForgeCapabilities.ITEM_HANDLER) {
+            return itemHandlerLazyOptional.cast();
         }
         return super.getCapability(cap, side);
     }
@@ -160,6 +367,56 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
 
     public void tickClient() {
 
-
+    }
+    
+    public int getProcessingProgress() {
+        return processingProgress; 
+    }
+    
+    public int getMaxProgress() { 
+        return currentRecipe != null ? (int) (currentRecipe.getProcessingTime() * CommonConfig.GENERAL.recipe_time_multiplier.get()) : 0; 
+    }
+    
+    public boolean isProcessing() { 
+        return isProcessing; 
+    }
+    
+    public SpatialCrafterRecipe getCurrentRecipe() { 
+        return currentRecipe; 
+    }
+    
+    public ItemStackHandler getItemHandler() { 
+        return itemHandler; 
+    }
+    
+    public int getSize() {
+        return size;
+    }
+    
+    public void setSize(int newSize) {
+        this.size = ensureOddSize(newSize);
+        setChanged();
+        if (level != null && !level.isClientSide) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_ALL);
+        }
+    }
+    
+    public net.minecraft.world.phys.AABB getScanArea() {
+        if (level == null) {
+            return new net.minecraft.world.phys.AABB(
+                worldPosition.getX() - size, worldPosition.getY() - size, worldPosition.getZ() - size,
+                worldPosition.getX() + size + 1, worldPosition.getY() + size + 1, worldPosition.getZ() + size + 1
+            );
+        }
+        
+        BlockState state = level.getBlockState(worldPosition);
+        Direction facing = state.getValue(BlockStateProperties.HORIZONTAL_FACING);
+        
+        BlockPos centerPos = worldPosition.relative(facing.getOpposite(), size);
+        
+        return new net.minecraft.world.phys.AABB(
+            centerPos.getX() - size, worldPosition.getY() - size, centerPos.getZ() - size,
+            centerPos.getX() + size + 1, worldPosition.getY() + size + 1, centerPos.getZ() + size + 1
+        );
     }
 }

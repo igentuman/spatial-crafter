@@ -1,0 +1,12 @@
+{
+  "type": "spatialcrafter:spatial_crafting",
+  "multiblock": "spatialcrafter:spatial_structures/mekanism_sps.nbt",
+  "processing_time": 200,
+  "energy_consumption": 1000,
+  "outputs": [
+    {
+      "item": "minecraft:diamond",
+      "count": 1
+    }
+  ]
+}
