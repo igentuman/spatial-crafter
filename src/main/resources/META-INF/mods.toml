@@ -1,0 +1,26 @@
+modLoader="javafml"
+loaderVersion="[43.3.10,)"
+license="MIT"
+[[mods]] 
+modId="spatialcrafter"
+version="${version}"
+displayName="Spatial Crafter"
+logoFile="logo.png"
+credits=""
+authors="igentuman"
+description='''
+Craft stuff with multiblocks!
+'''
+
+[[dependencies.spatialcrafter]]
+modId="forge" 
+mandatory=true 
+versionRange="[43.3.10,)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.spatialcrafter]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,)"
+ordering="NONE"
+side="BOTH"

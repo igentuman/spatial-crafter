@@ -1,0 +1,31 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "group": "spatialcrafter",
+  "key": {
+    "#": {
+      "tag": "forge:ingots/iron"
+    },
+    "c": {
+      "item": "minecraft:clock"
+    },
+    "m": {
+      "tag": "forge:gems/emerald"
+    },
+    "x": {
+      "tag": "forge:dusts/redstone"
+    },
+    "b": {
+      "tag": "minecraft:beam"
+    }
+  },
+  "pattern": [
+    "mbm",
+    "xcx",
+    "#x#"
+  ],
+  "result": {
+    "item": "blockbooster:booster_t1"
+  },
+  "show_notification": true
+}

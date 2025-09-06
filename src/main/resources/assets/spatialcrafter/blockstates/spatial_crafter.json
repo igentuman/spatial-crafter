@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "powered=false": {
+      "model": "spatialcrafter:block/spatial_crafter"
+    },
+    "powered=true": {
+      "model": "spatialcrafter:block/spatial_crafter_active"
+    }
+  }
+}
