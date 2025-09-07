@@ -2,15 +2,19 @@ package igentuman.spatialcrafter.client;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+import igentuman.spatialcrafter.CommonConfig;
 import igentuman.spatialcrafter.Main;
 import igentuman.spatialcrafter.block.SpatialCrafterBlockEntity;
+import igentuman.spatialcrafter.recipe.SpatialCrafterRecipe;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
@@ -46,18 +50,25 @@ public class SpatialCrafterOverlayHandler {
         for (BlockPos pos : spatialCrafterBlocks) {
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof SpatialCrafterBlockEntity spatialCrafter) {
-                // Get the scan area positioned behind the crafter block
-                AABB scanArea = spatialCrafter.getScanArea();
-                scanArea = scanArea
-                        .setMaxX((int)scanArea.maxX+1.0001)
-                        .setMinX((int)scanArea.minX-0.0001)
-                        .setMaxY((int)scanArea.maxY+1.0001)
-                        .setMinY((int)scanArea.minY-0.0001)
-                        .setMaxZ((int)scanArea.maxZ+1.0001)
-                        .setMinZ((int)scanArea.minZ-0.0001)
-                ;
-                // Render the filled box with transparency
-                renderFilledBox(event.getPoseStack(), scanArea, 0.2f, 0.8f, 1.0f, 0.25f);
+                // Check if there's a current recipe and render structure preview
+                SpatialCrafterRecipe currentRecipe = spatialCrafter.getCurrentRecipe();
+                if (currentRecipe instanceof SpatialCrafterRecipe && spatialCrafter.isProcessing()) {
+                    PreviewRenderer.setStructure(currentRecipe.getStructure());
+                    PreviewRenderer.renderPreview(spatialCrafter.getBlockPos().above(), event.getPoseStack(), event.getPartialTick(), event.getRenderTick());
+                } else {
+                    // Render the normal scan area if no recipe is active
+                    AABB scanArea = spatialCrafter.getScanArea();
+                    scanArea = scanArea
+                            .setMaxX((int)scanArea.maxX+1.0001)
+                            .setMinX((int)scanArea.minX-0.0001)
+                            .setMaxY((int)scanArea.maxY+1.0001)
+                            .setMinY((int)scanArea.minY-0.0001)
+                            .setMaxZ((int)scanArea.maxZ+1.0001)
+                            .setMinZ((int)scanArea.minZ-0.0001);
+                    
+                    // Render the filled box with transparency
+                    renderFilledBox(event.getPoseStack(), scanArea, 0.2f, 0.8f, 1.0f, 0.25f);
+                }
             }
         }
     }

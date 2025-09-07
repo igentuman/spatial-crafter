@@ -23,7 +23,7 @@ public class SpatialCrafterScreen extends AbstractContainerScreen<SpatialCrafter
     public SpatialCrafterScreen(SpatialCrafterContainer container, Inventory inv, Component name) {
         super(container, inv, name);
         imageWidth = 180;
-        imageHeight = 152;
+        imageHeight = 168;
     }
 
 
@@ -47,20 +47,20 @@ public class SpatialCrafterScreen extends AbstractContainerScreen<SpatialCrafter
         decreaseSizeButton = Button.builder(Component.literal("-"), button -> {
             int currentSize = menu.getSize();
             if (currentSize > 1) {
-                NetworkHandler.INSTANCE.sendToServer(new SizeChangePacket(menu.getBlockEntity().getBlockPos(), currentSize - 2));
+                NetworkHandler.INSTANCE.sendToServer(new SizeChangePacket(menu.getBlockEntity().getBlockPos(), currentSize - 1));
             }
         })
-        .bounds(relX + 10, relY + 20, 20, 20)
+        .bounds(relX + 10, relY + 50, 20, 20)
         .build();
         
         // Increase size button (+)
         increaseSizeButton = Button.builder(Component.literal("+"), button -> {
             int currentSize = menu.getSize();
             if (currentSize < 31) {
-                NetworkHandler.INSTANCE.sendToServer(new SizeChangePacket(menu.getBlockEntity().getBlockPos(), currentSize + 2));
+                NetworkHandler.INSTANCE.sendToServer(new SizeChangePacket(menu.getBlockEntity().getBlockPos(), currentSize + 1));
             }
         })
-        .bounds(relX + 150, relY + 20, 20, 20)
+        .bounds(relX + 150, relY + 50, 20, 20)
         .build();
         
         addRenderableWidget(decreaseSizeButton);
@@ -80,7 +80,7 @@ public class SpatialCrafterScreen extends AbstractContainerScreen<SpatialCrafter
 
     public void drawEnergyBar(GuiGraphics graphics)
     {
-        graphics.blit(GUI, getGuiLeft()+4, getGuiTop()+67, 0, 153, menu.getEnergyScaled(171), 7);
+        graphics.blit(GUI, getGuiLeft()+4, getGuiTop()+151, 1, 171, menu.getEnergyScaled(172), 7);
     }
 
     @Override
@@ -89,7 +89,7 @@ public class SpatialCrafterScreen extends AbstractContainerScreen<SpatialCrafter
 
         // Display current size
         String sizeText = "Size: " + menu.getSize();
-        graphics.drawCenteredString(Minecraft.getInstance().font, Component.literal(sizeText), imageWidth/2, 25, 0xffffff);
+        graphics.drawCenteredString(Minecraft.getInstance().font, Component.literal(sizeText), imageWidth/2, 55, 0xffffff);
 
         if(menu.isDisabled()) {
             graphics.drawString(Minecraft.getInstance().font, Component.translatable("gui.block_booster.disabled"), 10, 65, 0xffffff);

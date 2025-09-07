@@ -1,18 +1,12 @@
 package igentuman.spatialcrafter.recipe;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import igentuman.spatialcrafter.util.MultiblockStructure;
 import igentuman.spatialcrafter.util.MultiblocksProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.GsonHelper;
 import net.minecraft.world.Container;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Recipe;
@@ -20,10 +14,10 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.registries.ForgeRegistries;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class SpatialCrafterRecipe implements Recipe<Container> {
     private final ResourceLocation id;
@@ -71,14 +65,24 @@ public class SpatialCrafterRecipe implements Recipe<Container> {
         // Get all block states from the original structure
         Map<BlockPos, BlockState> originalBlocks = structure.getBlocks();
         
-        // Fill the original orientation
+        // Calculate the center of the structure to create relative coordinates
+        BlockPos structureCenter = structure.getCenter();
+        
+        // Fill the original orientation with relative coordinates
+        Map<BlockPos, BlockState> relativeBlocks = new HashMap<>();
         for (Map.Entry<BlockPos, BlockState> entry : originalBlocks.entrySet()) {
-            long posKey = entry.getKey().asLong();
-            requiredBlockStates.put(posKey, entry.getValue());
+            BlockPos absolutePos = entry.getKey();
+            BlockPos relativePos = new BlockPos(
+                absolutePos.getX() - structureCenter.getX(),
+                absolutePos.getY() - structureCenter.getY(),
+                absolutePos.getZ() - structureCenter.getZ()
+            );
+            relativeBlocks.put(relativePos, entry.getValue());
+            requiredBlockStates.put(relativePos.asLong(), entry.getValue());
         }
         
-        // Generate rotated versions
-        generateRotatedBlockStates(originalBlocks);
+        // Generate rotated versions using the relative coordinates
+        generateRotatedBlockStates(relativeBlocks);
     }
     
     private void generateRotatedBlockStates(Map<BlockPos, BlockState> originalBlocks) {
@@ -273,10 +277,18 @@ public class SpatialCrafterRecipe implements Recipe<Container> {
     public HashMap<Long, BlockState> getRequiredBlockStatesOpposite() { return requiredBlockStatesOposite; }
 
     public boolean matchesBlocks(HashMap<Long, BlockState> values) {
-        if(values == null || values.isEmpty() || values.size() != requiredBlockStates.size()) {
+        if(values == null || values.isEmpty()) {
             return false;
         }
-        // Check if the provided blocks match any of the four orientations
+        if(requiredBlockStates.isEmpty()) {
+            initBlockStates();
+        }
+        // Size check should be the same for all orientations
+        if(values.size() != requiredBlockStates.size()) {
+            return false;
+        }
+        
+        // Check if any of the four orientations match
         return matchesOrientation(values, requiredBlockStates) ||
                matchesOrientation(values, requiredBlockStatesCW) ||
                matchesOrientation(values, requiredBlockStatesCCW) ||
@@ -284,6 +296,11 @@ public class SpatialCrafterRecipe implements Recipe<Container> {
     }
     
     private boolean matchesOrientation(HashMap<Long, BlockState> providedBlocks, HashMap<Long, BlockState> requiredBlocks) {
+        // Skip empty required blocks (shouldn't happen, but safety check)
+        if (requiredBlocks.isEmpty()) {
+            return false;
+        }
+        
         // Check if all required blocks are present in the provided blocks
         for (Map.Entry<Long, BlockState> requiredEntry : requiredBlocks.entrySet()) {
             Long requiredPos = requiredEntry.getKey();
@@ -295,6 +312,13 @@ public class SpatialCrafterRecipe implements Recipe<Container> {
             }
         }
         return true;
+    }
+
+    public MultiblockStructure getStructure() {
+        return MultiblocksProvider.getStructures().stream()
+                .filter(s -> s.getId().equals(this.multiblockId))
+                .findFirst()
+                .orElse(null);
     }
 
     public static class EntityOutput {

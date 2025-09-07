@@ -1,11 +1,11 @@
 package igentuman.spatialcrafter.block;
 
 import igentuman.spatialcrafter.CommonConfig;
+import igentuman.spatialcrafter.Main;
 import igentuman.spatialcrafter.client.SpatialCrafterOverlayHandler;
 import igentuman.spatialcrafter.recipe.SpatialCrafterRecipe;
 import igentuman.spatialcrafter.recipe.SpatialCrafterRecipeManager;
 import igentuman.spatialcrafter.util.CustomEnergyStorage;
-import igentuman.spatialcrafter.util.MultiblockStructure;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -15,6 +15,7 @@ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -31,10 +32,20 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import static igentuman.spatialcrafter.Setup.SPATIAL_CRAFTER_BE;
 
 public class SpatialCrafterBlockEntity extends BlockEntity {
+
+    // Static executor for background scanning tasks
+    private static final Executor SCAN_EXECUTOR = Executors.newFixedThreadPool(2, r -> {
+        Thread t = new Thread(r, "SpatialCrafter-Scanner");
+        t.setDaemon(true);
+        return t;
+    });
 
     private final CustomEnergyStorage energy = createEnergyStorage();
     private final LazyOptional<IEnergyStorage> energyHandler = LazyOptional.of(() -> energy);
@@ -48,16 +59,13 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
     private HashMap<Long, BlockState> indexedBlockStates = new HashMap<>();
     // Scan area size field
     private int size = 5;
+    // Track ongoing scan to prevent multiple concurrent scans
+    private CompletableFuture<Void> currentScan = null;
 
     private int ensureOddSize(int inputSize) {
         // Clamp to valid range (1-31, keeping it odd)
         int clampedSize = Math.max(1, Math.min(31, inputSize));
-        
-        // Make sure it's odd
-        if (clampedSize % 2 == 0) {
-            // If even, subtract 1 to make it odd (but ensure it doesn't go below 1)
-            clampedSize = Math.max(1, clampedSize - 1);
-        }
+
         
         return clampedSize;
     }
@@ -80,6 +88,12 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         super.setRemoved();
         energyHandler.invalidate();
         itemHandlerLazyOptional.invalidate();
+        
+        // Cancel any ongoing scan
+        if (currentScan != null && !currentScan.isDone()) {
+            currentScan.cancel(true);
+        }
+        
         if (level != null && level.isClientSide) {
             DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> 
                 SpatialCrafterOverlayHandler.removeSpatialCrafterBlock(worldPosition));
@@ -134,8 +148,10 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
             if(!level.isClientSide()) {
                 boolean lastState = isDisabled;
                 updateRedstoneControl();
-                if(lastState != isDisabled) {
-                    level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_ALL);
+                if(currentRecipe != null) {
+                    level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState().setValue(BlockStateProperties.POWERED, true), Block.UPDATE_ALL);
+                } else {
+                    level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState().setValue(BlockStateProperties.POWERED, false), Block.UPDATE_ALL);
                 }
                 if(isDisabled) {
                     return;
@@ -146,9 +162,40 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
 
     private void scanForRecipe() {
         if (level == null || isProcessing) return;
-        indexBlockStates();
-        Optional<SpatialCrafterRecipe> recipe = SpatialCrafterRecipeManager.findRecipe(level, indexedBlockStates);
-        recipe.ifPresent(this::startCrafting);
+        
+        // Check if there's already a scan running
+        if (currentScan != null && !currentScan.isDone()) {
+            return; // Skip this scan if one is already in progress
+        }
+        
+        // Capture current state for the background thread
+        final Level capturedLevel = level;
+        final BlockPos capturedPos = worldPosition.immutable();
+        final int capturedSize = size;
+        
+        currentScan = CompletableFuture
+            .supplyAsync(() -> {
+                // This runs on background thread
+                return indexBlockStatesAsync(capturedLevel, capturedPos, capturedSize);
+            }, SCAN_EXECUTOR)
+            .thenCompose(indexedStates -> {
+                // This also runs on background thread
+                return CompletableFuture.supplyAsync(() -> {
+                    return SpatialCrafterRecipeManager.findRecipe(capturedLevel, indexedStates);
+                }, SCAN_EXECUTOR);
+            })
+            .thenAcceptAsync(recipe -> {
+                // This runs back on the main thread
+                if (level != null && !isRemoved() && !isProcessing) {
+                    recipe.ifPresent(this::startCrafting);
+                }
+            }, level.getServer()::execute)
+            .exceptionally(throwable -> {
+                // Handle any exceptions that occur during scanning
+                Main.logger.error("Error during recipe scanning for SpatialCrafter at {}: {}", 
+                    capturedPos, throwable.getMessage());
+                return null;
+            });
     }
 
     private void indexBlockStates() {
@@ -156,33 +203,95 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         net.minecraft.world.phys.AABB scanArea = getScanArea();
         BlockPos min = new BlockPos((int) scanArea.minX, (int) scanArea.minY, (int) scanArea.minZ);
         BlockPos max = new BlockPos((int) scanArea.maxX, (int) scanArea.maxY, (int) scanArea.maxZ);
-        int localX = 0;
-        int localY = 0;
-        int localZ = 0;
+        
+        // Calculate the center of the scan area to create relative coordinates
+        BlockPos center = new BlockPos(
+            (min.getX() + max.getX()) / 2,
+            (min.getY() + max.getY()) / 2,
+            (min.getZ() + max.getZ()) / 2
+        );
+        
         for (int x = min.getX(); x <= max.getX(); x++) {
             for (int y = min.getY(); y <= max.getY(); y++) {
                 for (int z = min.getZ(); z <= max.getZ(); z++) {
-                    BlockPos localPos = new BlockPos(localX, localY, localZ);
+                    // Create relative coordinates from the center
+                    BlockPos relativePos = new BlockPos(x - center.getX(), y - center.getY(), z - center.getZ());
                     BlockPos currentPos = new BlockPos(x, y, z);
                     assert level != null;
                     BlockState state = level.getBlockState(currentPos);
-                    indexedBlockStates.put(localPos.asLong(), state);
-                    localZ++;
+                    indexedBlockStates.put(relativePos.asLong(), state);
                 }
-                localZ = 0;
-                localY++;
             }
-            localY = 0;
-            localX++;
         }
+    }
+
+    /**
+     * Async version of indexBlockStates that runs on background thread
+     * Returns a new HashMap instead of modifying the instance field
+     */
+    private HashMap<Long, BlockState> indexBlockStatesAsync(Level level, BlockPos centerPos, int scanSize) {
+        HashMap<Long, BlockState> states = new HashMap<>();
+        
+        // Calculate scan area using the same logic as getScanArea but with captured parameters
+        BlockState state = level.getBlockState(centerPos);
+        Direction facing = state.getValue(BlockStateProperties.HORIZONTAL_FACING);
+        
+        BlockPos scanCenterPos = centerPos.relative(facing.getOpposite(), scanSize);
+        
+        net.minecraft.world.phys.AABB scanArea = new net.minecraft.world.phys.AABB(
+            scanCenterPos.getX() - scanSize + 1, centerPos.getY(), scanCenterPos.getZ() - scanSize + 1,
+            scanCenterPos.getX() + scanSize - 1.0001, centerPos.getY() + scanSize + 1.9999, scanCenterPos.getZ() + scanSize - 0.9999
+        );
+        
+        BlockPos min = new BlockPos((int) scanArea.minX, (int) scanArea.minY, (int) scanArea.minZ);
+        BlockPos max = new BlockPos((int) scanArea.maxX, (int) scanArea.maxY, (int) scanArea.maxZ);
+        
+        // Calculate the center of the scan area to create relative coordinates
+        BlockPos center = new BlockPos(
+            (min.getX() + max.getX()) / 2,
+            (min.getY() + max.getY()) / 2,
+            (min.getZ() + max.getZ()) / 2
+        );
+        
+        for (int x = min.getX(); x <= max.getX(); x++) {
+            for (int y = min.getY(); y <= max.getY(); y++) {
+                for (int z = min.getZ(); z <= max.getZ(); z++) {
+                    // Create relative coordinates from the center
+                    BlockPos relativePos = new BlockPos(x - center.getX(), y - center.getY(), z - center.getZ());
+                    BlockPos currentPos = new BlockPos(x, y, z);
+                    BlockState blockState = level.getBlockState(currentPos);
+                    states.put(relativePos.asLong(), blockState);
+                }
+            }
+        }
+        
+        return states;
     }
 
     public void startCrafting(SpatialCrafterRecipe craftingRecipe) {
         if (level == null || isProcessing) return;
         currentRecipe = craftingRecipe;
+        clearArea();
         processingProgress = 0;
         isProcessing = true;
         setChanged();
+    }
+
+    private void clearArea() {
+        if (level == null || currentRecipe == null) return;
+
+        net.minecraft.world.phys.AABB scanArea = getScanArea();
+        BlockPos min = new BlockPos((int) scanArea.minX, (int) scanArea.minY, (int) scanArea.minZ);
+        BlockPos max = new BlockPos((int) scanArea.maxX, (int) scanArea.maxY, (int) scanArea.maxZ);
+
+        for (int x = min.getX(); x <= max.getX(); x++) {
+            for (int y = min.getY(); y <= max.getY(); y++) {
+                for (int z = min.getZ(); z <= max.getZ(); z++) {
+                    BlockPos currentPos = new BlockPos(x, y, z);
+                    level.destroyBlock(currentPos, false);
+                }
+            }
+        }
     }
 
     private void processCrafting() {
@@ -440,7 +549,7 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         
         return new net.minecraft.world.phys.AABB(
             centerPos.getX() - size+1, worldPosition.getY(), centerPos.getZ() - size+1,
-            centerPos.getX() + size - 1.0001, worldPosition.getY() + size + 1.9999, centerPos.getZ() + size - 0.9999
+            centerPos.getX() + size - 1.0001, worldPosition.getY() + size*2 - 1.0001, centerPos.getZ() + size - 0.9999
         );
     }
 }

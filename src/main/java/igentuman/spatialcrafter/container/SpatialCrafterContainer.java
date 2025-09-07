@@ -8,13 +8,10 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.SlotItemHandler;
-
-import java.util.HashMap;
 
 import static igentuman.spatialcrafter.Setup.SPATIAL_CRAFTER_BLOCK;
 import static igentuman.spatialcrafter.Setup.SPATIAL_CRAFTER_CONTAINER;
@@ -31,25 +28,33 @@ public class SpatialCrafterContainer extends AbstractContainerMenu {
         this.playerEntity = player;
         this.itemHandler = blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(null);
         if (itemHandler != null) {
-            addMultibuilderInventory();
+            addCrafterInventory();
         }
         addPlayerInventory(playerEntity.getInventory());
+        addPlayerHotbar(playerEntity.getInventory());
     }
 
-    private void addMultibuilderInventory() {
+    private void addCrafterInventory() {
         int index = -1;
         for (int row = 0; row < 5; row++) {
             index++;
-            this.addSlot(new SlotItemHandler(itemHandler, index, 5 * 18, 13 + row * 18));
+            this.addSlot(new SlotItemHandler(itemHandler, index, 46 + 18*row, 21));
         }
     }
 
     private void addPlayerInventory(Inventory playerInventory) {
-        int yOffset = 107;
+        int yOffset = 72;
         for (int i = 0; i < 3; ++i) {
             for (int l = 0; l < 9; ++l) {
-                this.addSlot(new Slot(playerInventory, l + i * 9 + 9, 5 + l * 18, yOffset + i * 18));
+                this.addSlot(new Slot(playerInventory, l + i * 9 + 9, 10 + l * 18, yOffset + i * 18));
             }
+        }
+    }
+
+    private void addPlayerHotbar(Inventory playerInventory) {
+        int yOffset = 130;
+        for (int i = 0; i < 9; ++i) {
+            this.addSlot(new Slot(playerInventory, i, 10 + i * 18, yOffset));
         }
     }
 

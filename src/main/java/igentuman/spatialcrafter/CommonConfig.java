@@ -41,6 +41,7 @@ public class CommonConfig {
         public final ForgeConfigSpec.IntValue recipe_energy_multiplier;
         public final ForgeConfigSpec.DoubleValue recipe_time_multiplier;
         public final ForgeConfigSpec.BooleanValue enable_entity_spawning;
+        public final ForgeConfigSpec.BooleanValue enable_structure_preview;
 
         public General(ForgeConfigSpec.Builder builder) {
             builder.push("General");
@@ -64,6 +65,10 @@ public class CommonConfig {
             enable_entity_spawning = builder
                     .comment("Enable entity spawning from recipes")
                     .define("enable_entity_spawning", true);
+                    
+            enable_structure_preview = builder
+                    .comment("Enable structure preview rendering when a recipe is active")
+                    .define("enable_structure_preview", true);
 
             builder.pop();
         }
