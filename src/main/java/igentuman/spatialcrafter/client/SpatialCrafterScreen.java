@@ -44,23 +44,25 @@ public class SpatialCrafterScreen extends AbstractContainerScreen<SpatialCrafter
         int relY = (this.height - this.imageHeight) / 2;
         
         // Decrease size button (-)
-        decreaseSizeButton = Button.builder(Component.literal("-"), button -> {
+        decreaseSizeButton = Button.builder(Component.translatable("button.spatialcrafter.size_decrease"), button -> {
             int currentSize = menu.getSize();
             if (currentSize > 1) {
                 NetworkHandler.INSTANCE.sendToServer(new SizeChangePacket(menu.getBlockEntity().getBlockPos(), currentSize - 1));
             }
         })
         .bounds(relX + 10, relY + 50, 20, 20)
+        .tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.translatable("gui.spatialcrafter.decrease_size")))
         .build();
         
         // Increase size button (+)
-        increaseSizeButton = Button.builder(Component.literal("+"), button -> {
+        increaseSizeButton = Button.builder(Component.translatable("button.spatialcrafter.size_increase"), button -> {
             int currentSize = menu.getSize();
             if (currentSize < 31) {
                 NetworkHandler.INSTANCE.sendToServer(new SizeChangePacket(menu.getBlockEntity().getBlockPos(), currentSize + 1));
             }
         })
         .bounds(relX + 150, relY + 50, 20, 20)
+        .tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.translatable("gui.spatialcrafter.increase_size")))
         .build();
         
         addRenderableWidget(decreaseSizeButton);
@@ -85,21 +87,21 @@ public class SpatialCrafterScreen extends AbstractContainerScreen<SpatialCrafter
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawCenteredString(Minecraft.getInstance().font, I18n.get("gui.block_booster"), imageWidth/2, 4, 0xffffff );
+        graphics.drawCenteredString(Minecraft.getInstance().font, I18n.get("gui.spatialcrafter.spatial_crafter"), imageWidth/2, 4, 0xffffff );
 
         // Display current size
-        String sizeText = "Size: " + menu.getSize();
-        graphics.drawCenteredString(Minecraft.getInstance().font, Component.literal(sizeText), imageWidth/2, 55, 0xffffff);
+        Component sizeText = Component.translatable("gui.spatialcrafter.size", menu.getSize());
+        graphics.drawCenteredString(Minecraft.getInstance().font, sizeText, imageWidth/2, 55, 0xffffff);
 
         if(menu.isDisabled()) {
-            graphics.drawString(Minecraft.getInstance().font, Component.translatable("gui.block_booster.disabled"), 10, 65, 0xffffff);
+            graphics.drawString(Minecraft.getInstance().font, Component.translatable("gui.spatialcrafter.disabled"), 10, 65, 0xffffff);
         }
     }
 
     @Override
     public void renderTooltip(GuiGraphics graphics, int x, int y) {
-        if(x > getGuiLeft()+4 && x < getGuiLeft()+175 && y > getGuiTop()+65 && y < getGuiTop()+78) {
-            Component textComponent = Component.translatable("gui.energy.info", menu.getEnergy(), menu.getMaxEnergy());
+        if(x > getGuiLeft()+4 && x < getGuiLeft()+175 && y > getGuiTop()+150 && y < getGuiTop()+160) {
+            Component textComponent = Component.translatable("gui.spatialcrafter.energy.info", menu.getEnergy(), menu.getMaxEnergy());
             graphics.renderTooltip(Minecraft.getInstance().font, textComponent, x, y);
         }
     }

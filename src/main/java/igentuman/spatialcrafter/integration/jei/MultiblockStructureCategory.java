@@ -119,20 +119,20 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
         // Draw recipe information if available
         if (recipe.hasSpatialRecipe()) {
             // Draw "Outputs:" label
-            graphics.drawString(font, "Outputs:", 120, 10, 0xFFFFFFFF);
+            graphics.drawString(font, Component.translatable("jei.spatialcrafter.outputs").getString(), 120, 10, 0xFFFFFFFF);
             
             // Draw processing time and energy consumption
             int processingTime = recipe.getProcessingTime();
             int energyConsumption = recipe.getEnergyConsumption();
             
             if (processingTime > 0) {
-                String timeText = "Time: " + (processingTime / 20.0f) + "s";
-                graphics.drawString(font, timeText, 5, 125, 0xFFFFFFFF);
+                Component timeText = Component.translatable("jei.spatialcrafter.processing_time", processingTime / 20.0f);
+                graphics.drawString(font, timeText.getString(), 5, 125, 0xFFFFFFFF);
             }
             
             if (energyConsumption > 0) {
-                String energyText = "Energy: " + energyConsumption + " FE";
-                graphics.drawString(font, energyText, 90, 125, 0xFFFFFFFF);
+                Component energyText = Component.translatable("jei.spatialcrafter.energy_consumption", energyConsumption);
+                graphics.drawString(font, energyText.getString(), 90, 125, 0xFFFFFFFF);
             }
         }
         long window = Minecraft.getInstance().getWindow().getWindow();

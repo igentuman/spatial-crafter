@@ -37,6 +37,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import static igentuman.spatialcrafter.Setup.SPATIAL_CRAFTER_BE;
+import static net.minecraft.world.level.block.Blocks.AIR;
 
 public class SpatialCrafterBlockEntity extends BlockEntity {
 
@@ -172,8 +173,9 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         final Level capturedLevel = level;
         final BlockPos capturedPos = worldPosition.immutable();
         final int capturedSize = size;
-        
-        currentScan = CompletableFuture
+/*        Optional<SpatialCrafterRecipe> recipe = SpatialCrafterRecipeManager.findRecipe(capturedLevel, indexBlockStatesAsync(capturedLevel, capturedPos, capturedSize));
+        recipe.ifPresent(this::startCrafting);*/
+    currentScan = CompletableFuture
             .supplyAsync(() -> {
                 // This runs on background thread
                 return indexBlockStatesAsync(capturedLevel, capturedPos, capturedSize);
@@ -198,33 +200,6 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
             });
     }
 
-    private void indexBlockStates() {
-        indexedBlockStates.clear();
-        net.minecraft.world.phys.AABB scanArea = getScanArea();
-        BlockPos min = new BlockPos((int) scanArea.minX, (int) scanArea.minY, (int) scanArea.minZ);
-        BlockPos max = new BlockPos((int) scanArea.maxX, (int) scanArea.maxY, (int) scanArea.maxZ);
-        
-        // Calculate the center of the scan area to create relative coordinates
-        BlockPos center = new BlockPos(
-            (min.getX() + max.getX()) / 2,
-            (min.getY() + max.getY()) / 2,
-            (min.getZ() + max.getZ()) / 2
-        );
-        
-        for (int x = min.getX(); x <= max.getX(); x++) {
-            for (int y = min.getY(); y <= max.getY(); y++) {
-                for (int z = min.getZ(); z <= max.getZ(); z++) {
-                    // Create relative coordinates from the center
-                    BlockPos relativePos = new BlockPos(x - center.getX(), y - center.getY(), z - center.getZ());
-                    BlockPos currentPos = new BlockPos(x, y, z);
-                    assert level != null;
-                    BlockState state = level.getBlockState(currentPos);
-                    indexedBlockStates.put(relativePos.asLong(), state);
-                }
-            }
-        }
-    }
-
     /**
      * Async version of indexBlockStates that runs on background thread
      * Returns a new HashMap instead of modifying the instance field
@@ -240,7 +215,7 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         
         net.minecraft.world.phys.AABB scanArea = new net.minecraft.world.phys.AABB(
             scanCenterPos.getX() - scanSize + 1, centerPos.getY(), scanCenterPos.getZ() - scanSize + 1,
-            scanCenterPos.getX() + scanSize - 1.0001, centerPos.getY() + scanSize + 1.9999, scanCenterPos.getZ() + scanSize - 0.9999
+            scanCenterPos.getX() + scanSize - 1.0001, centerPos.getY() + scanSize + 2.0001, scanCenterPos.getZ() + scanSize - 0.9999
         );
         
         BlockPos min = new BlockPos((int) scanArea.minX, (int) scanArea.minY, (int) scanArea.minZ);
@@ -288,7 +263,7 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
             for (int y = min.getY(); y <= max.getY(); y++) {
                 for (int z = min.getZ(); z <= max.getZ(); z++) {
                     BlockPos currentPos = new BlockPos(x, y, z);
-                    level.destroyBlock(currentPos, false);
+                    level.setBlock(currentPos, AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
                 }
             }
         }

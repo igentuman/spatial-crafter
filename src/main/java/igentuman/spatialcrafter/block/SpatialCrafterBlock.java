@@ -58,7 +58,11 @@ public class SpatialCrafterBlock extends HorizontalDirectionalBlock implements E
 
     @Override
     public void appendHoverText(ItemStack stack, @Nullable BlockGetter reader, List<Component> list, TooltipFlag flags) {
-      //  list.add(Component.translatable("hint.booster_t1", CommonConfig.GENERAL.t1_fe_per_tick.get(), CommonConfig.GENERAL.t1_boost_rate.get()).withStyle(ChatFormatting.BLUE));
+        list.add(Component.translatable("tooltip.spatialcrafter.spatial_crafter").withStyle(net.minecraft.ChatFormatting.GRAY));
+        list.add(Component.translatable("tooltip.spatialcrafter.multiblock_required").withStyle(net.minecraft.ChatFormatting.YELLOW));
+        if (flags.isAdvanced()) {
+            list.add(Component.translatable("tooltip.spatialcrafter.size_range").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
+        }
     }
 
     @Nullable
@@ -108,7 +112,7 @@ public class SpatialCrafterBlock extends HorizontalDirectionalBlock implements E
                 MenuProvider containerProvider = new MenuProvider() {
                     @Override
                     public Component getDisplayName() {
-                        return MutableComponent.create(ComponentContents.EMPTY);
+                        return Component.translatable("container.spatialcrafter.spatial_crafter");
                     }
 
                     @Override
