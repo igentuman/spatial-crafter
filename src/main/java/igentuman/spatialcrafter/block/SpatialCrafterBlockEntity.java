@@ -175,29 +175,29 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         final int capturedSize = size;
 /*        Optional<SpatialCrafterRecipe> recipe = SpatialCrafterRecipeManager.findRecipe(capturedLevel, indexBlockStatesAsync(capturedLevel, capturedPos, capturedSize));
         recipe.ifPresent(this::startCrafting);*/
-    currentScan = CompletableFuture
-            .supplyAsync(() -> {
-                // This runs on background thread
-                return indexBlockStatesAsync(capturedLevel, capturedPos, capturedSize);
-            }, SCAN_EXECUTOR)
-            .thenCompose(indexedStates -> {
-                // This also runs on background thread
-                return CompletableFuture.supplyAsync(() -> {
-                    return SpatialCrafterRecipeManager.findRecipe(capturedLevel, indexedStates);
-                }, SCAN_EXECUTOR);
-            })
-            .thenAcceptAsync(recipe -> {
-                // This runs back on the main thread
-                if (level != null && !isRemoved() && !isProcessing) {
-                    recipe.ifPresent(this::startCrafting);
-                }
-            }, level.getServer()::execute)
-            .exceptionally(throwable -> {
-                // Handle any exceptions that occur during scanning
-                Main.logger.error("Error during recipe scanning for SpatialCrafter at {}: {}", 
-                    capturedPos, throwable.getMessage());
-                return null;
-            });
+        currentScan = CompletableFuture
+        .supplyAsync(() -> {
+            // This runs on background thread
+            return indexBlockStatesAsync(capturedLevel, capturedPos, capturedSize);
+        }, SCAN_EXECUTOR)
+        .thenCompose(indexedStates -> {
+            // This also runs on background thread
+            return CompletableFuture.supplyAsync(() -> {
+                return SpatialCrafterRecipeManager.findRecipe(capturedLevel, indexedStates);
+            }, SCAN_EXECUTOR);
+        })
+        .thenAcceptAsync(recipe -> {
+            // This runs back on the main thread
+            if (level != null && !isRemoved() && !isProcessing) {
+                recipe.ifPresent(this::startCrafting);
+            }
+        }, level.getServer()::execute)
+        .exceptionally(throwable -> {
+            // Handle any exceptions that occur during scanning
+            Main.logger.error("Error during recipe scanning for SpatialCrafter at {}: {}",
+                capturedPos, throwable.getMessage());
+            return null;
+        });
     }
 
     /**
@@ -215,7 +215,7 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         
         net.minecraft.world.phys.AABB scanArea = new net.minecraft.world.phys.AABB(
             scanCenterPos.getX() - scanSize + 1, centerPos.getY(), scanCenterPos.getZ() - scanSize + 1,
-            scanCenterPos.getX() + scanSize - 1.0001, centerPos.getY() + scanSize + 2.0001, scanCenterPos.getZ() + scanSize - 0.9999
+            scanCenterPos.getX() + scanSize - 1.0001, centerPos.getY() + scanSize*2-2, scanCenterPos.getZ() + scanSize - 0.9999
         );
         
         BlockPos min = new BlockPos((int) scanArea.minX, (int) scanArea.minY, (int) scanArea.minZ);
@@ -329,9 +329,9 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
                         if (!entityOutput.getNbt().isEmpty()) {
                             entity.load(entityOutput.getNbt());
                         }
-                        
+                        BlockPos center = new BlockPos((int) getScanArea().getCenter().x, (int) getScanArea().getCenter().y, (int) getScanArea().getCenter().z);
                         // Position entity
-                        BlockPos spawnPos = worldPosition.offset(entityOutput.getRelativePos());
+                        BlockPos spawnPos = center.offset(entityOutput.getRelativePos());
                         entity.setPos(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5);
                         
                         level.addFreshEntity(entity);

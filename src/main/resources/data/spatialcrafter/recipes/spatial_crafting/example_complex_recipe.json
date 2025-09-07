@@ -1,6 +1,6 @@
 {
   "type": "spatialcrafter:spatial_crafting",
-  "multiblock": "spatialcrafter:spatial_structures/mekanism_boiler.nbt",
+  "multiblock": "spatialcrafter:spatial_structures/wither_altar.nbt",
   "processing_time": 600,
   "energy_consumption": 5000,
   "outputs": [
@@ -17,10 +17,9 @@
   ],
   "entity_outputs": [
     {
-      "entity": "minecraft:experience_orb",
-      "count": 5,
-      "position": [0, 1, 0],
-      "nbt": "{Value:100}"
+      "entity": "minecraft:wither_skeleton",
+      "count": 1,
+      "position": [0, 1, 0]
     }
   ],
   "global_nbt": "{SpatialCrafted:1b}"

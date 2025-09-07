@@ -16,7 +16,7 @@
       "tag": "forge:dusts/redstone"
     },
     "b": {
-      "tag": "minecraft:beam"
+      "item": "minecraft:beacon"
     }
   },
   "pattern": [
@@ -25,7 +25,7 @@
     "#x#"
   ],
   "result": {
-    "item": "blockbooster:booster_t1"
+    "item": "spatialcrafter:spatial_crafter"
   },
   "show_notification": true
 }
