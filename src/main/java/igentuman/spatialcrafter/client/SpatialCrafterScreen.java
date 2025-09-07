@@ -47,7 +47,7 @@ public class SpatialCrafterScreen extends AbstractContainerScreen<SpatialCrafter
         decreaseSizeButton = Button.builder(Component.literal("-"), button -> {
             int currentSize = menu.getSize();
             if (currentSize > 1) {
-                NetworkHandler.INSTANCE.sendToServer(new SizeChangePacket(menu.getBlockEntity().getBlockPos(), currentSize - 1));
+                NetworkHandler.INSTANCE.sendToServer(new SizeChangePacket(menu.getBlockEntity().getBlockPos(), currentSize - 2));
             }
         })
         .bounds(relX + 10, relY + 20, 20, 20)
@@ -56,8 +56,8 @@ public class SpatialCrafterScreen extends AbstractContainerScreen<SpatialCrafter
         // Increase size button (+)
         increaseSizeButton = Button.builder(Component.literal("+"), button -> {
             int currentSize = menu.getSize();
-            if (currentSize < 32) {
-                NetworkHandler.INSTANCE.sendToServer(new SizeChangePacket(menu.getBlockEntity().getBlockPos(), currentSize + 1));
+            if (currentSize < 31) {
+                NetworkHandler.INSTANCE.sendToServer(new SizeChangePacket(menu.getBlockEntity().getBlockPos(), currentSize + 2));
             }
         })
         .bounds(relX + 150, relY + 20, 20, 20)
@@ -74,7 +74,7 @@ public class SpatialCrafterScreen extends AbstractContainerScreen<SpatialCrafter
         if (decreaseSizeButton != null && increaseSizeButton != null) {
             int currentSize = menu.getSize();
             decreaseSizeButton.active = currentSize > 1;
-            increaseSizeButton.active = currentSize < 32;
+            increaseSizeButton.active = currentSize < 31;
         }
     }
 

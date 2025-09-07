@@ -29,6 +29,7 @@ import net.minecraftforge.items.ItemStackHandler;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.HashMap;
 import java.util.Optional;
 
 import static igentuman.spatialcrafter.Setup.SPATIAL_CRAFTER_BE;
@@ -44,7 +45,7 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
     private SpatialCrafterRecipe currentRecipe;
     private int processingProgress = 0;
     private boolean isProcessing = false;
-    
+    private HashMap<Long, BlockState> indexedBlockStates = new HashMap<>();
     // Scan area size field
     private int size = 5;
 
@@ -125,6 +126,8 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         // Process crafting
         if (isProcessing) {
             processCrafting();
+        } else if(level.getGameTime() % 20 == 0) {
+            scanForRecipe();
         }
         
         if(tick % 10 == 0) {
@@ -140,25 +143,46 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
             }
         }
     }
-    
-    public void startCrafting(MultiblockStructure structure) {
+
+    private void scanForRecipe() {
         if (level == null || isProcessing) return;
-        
-        Optional<SpatialCrafterRecipe> recipe = SpatialCrafterRecipeManager.findRecipe(level, structure);
-        if (recipe.isPresent()) {
-            SpatialCrafterRecipe craftingRecipe = recipe.get();
-            
-            // Apply config multipliers
-            int adjustedEnergyConsumption = (int) (craftingRecipe.getEnergyConsumption() * CommonConfig.GENERAL.recipe_energy_multiplier.get());
-            
-            // Check if we have enough energy
-            if (energy.getEnergyStored() >= adjustedEnergyConsumption) {
-                currentRecipe = craftingRecipe;
-                processingProgress = 0;
-                isProcessing = true;
-                setChanged();
+        indexBlockStates();
+        Optional<SpatialCrafterRecipe> recipe = SpatialCrafterRecipeManager.findRecipe(level, indexedBlockStates);
+        recipe.ifPresent(this::startCrafting);
+    }
+
+    private void indexBlockStates() {
+        indexedBlockStates.clear();
+        net.minecraft.world.phys.AABB scanArea = getScanArea();
+        BlockPos min = new BlockPos((int) scanArea.minX, (int) scanArea.minY, (int) scanArea.minZ);
+        BlockPos max = new BlockPos((int) scanArea.maxX, (int) scanArea.maxY, (int) scanArea.maxZ);
+        int localX = 0;
+        int localY = 0;
+        int localZ = 0;
+        for (int x = min.getX(); x <= max.getX(); x++) {
+            for (int y = min.getY(); y <= max.getY(); y++) {
+                for (int z = min.getZ(); z <= max.getZ(); z++) {
+                    BlockPos localPos = new BlockPos(localX, localY, localZ);
+                    BlockPos currentPos = new BlockPos(x, y, z);
+                    assert level != null;
+                    BlockState state = level.getBlockState(currentPos);
+                    indexedBlockStates.put(localPos.asLong(), state);
+                    localZ++;
+                }
+                localZ = 0;
+                localY++;
             }
+            localY = 0;
+            localX++;
         }
+    }
+
+    public void startCrafting(SpatialCrafterRecipe craftingRecipe) {
+        if (level == null || isProcessing) return;
+        currentRecipe = craftingRecipe;
+        processingProgress = 0;
+        isProcessing = true;
+        setChanged();
     }
 
     private void processCrafting() {
@@ -404,7 +428,7 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
     public net.minecraft.world.phys.AABB getScanArea() {
         if (level == null) {
             return new net.minecraft.world.phys.AABB(
-                worldPosition.getX() - size, worldPosition.getY() - size, worldPosition.getZ() - size,
+                worldPosition.getX() - size, worldPosition.getY(), worldPosition.getZ() - size,
                 worldPosition.getX() + size + 1, worldPosition.getY() + size + 1, worldPosition.getZ() + size + 1
             );
         }
@@ -415,8 +439,8 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         BlockPos centerPos = worldPosition.relative(facing.getOpposite(), size);
         
         return new net.minecraft.world.phys.AABB(
-            centerPos.getX() - size, worldPosition.getY() - size, centerPos.getZ() - size,
-            centerPos.getX() + size + 1, worldPosition.getY() + size + 1, centerPos.getZ() + size + 1
+            centerPos.getX() - size+1, worldPosition.getY(), centerPos.getZ() - size+1,
+            centerPos.getX() + size - 1.0001, worldPosition.getY() + size + 1.9999, centerPos.getZ() + size - 0.9999
         );
     }
 }

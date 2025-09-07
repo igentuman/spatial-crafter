@@ -48,7 +48,14 @@ public class SpatialCrafterOverlayHandler {
             if (be instanceof SpatialCrafterBlockEntity spatialCrafter) {
                 // Get the scan area positioned behind the crafter block
                 AABB scanArea = spatialCrafter.getScanArea();
-                
+                scanArea = scanArea
+                        .setMaxX((int)scanArea.maxX+1.0001)
+                        .setMinX((int)scanArea.minX-0.0001)
+                        .setMaxY((int)scanArea.maxY+1.0001)
+                        .setMinY((int)scanArea.minY-0.0001)
+                        .setMaxZ((int)scanArea.maxZ+1.0001)
+                        .setMinZ((int)scanArea.minZ-0.0001)
+                ;
                 // Render the filled box with transparency
                 renderFilledBox(event.getPoseStack(), scanArea, 0.2f, 0.8f, 1.0f, 0.25f);
             }
@@ -69,6 +76,7 @@ public class SpatialCrafterOverlayHandler {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        RenderSystem.disableCull(); // Disable face culling so we can see from inside
         
         // Get camera position for proper translation
         Vec3 cam = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
@@ -95,6 +103,10 @@ public class SpatialCrafterOverlayHandler {
         float y2 = (float) box.maxY;
         float z2 = (float) box.maxZ;
         
+        // Small offset to prevent z-fighting between inner and outer faces
+        float offset = 0.0005f;
+        
+        // Outer faces (normal box)
         // Bottom face
         buffer.vertex(matrix, x1, y1, z1).color(r, g, b, alpha).endVertex();
         buffer.vertex(matrix, x2, y1, z1).color(r, g, b, alpha).endVertex();
@@ -131,9 +143,47 @@ public class SpatialCrafterOverlayHandler {
         buffer.vertex(matrix, x2, y2, z2).color(r, g, b, alpha).endVertex();
         buffer.vertex(matrix, x2, y1, z2).color(r, g, b, alpha).endVertex();
         
+        // Inner faces (slightly offset inward to prevent z-fighting)
+        // Bottom face (inner)
+        buffer.vertex(matrix, x1 + offset, y1 + offset, z1 + offset).color(r, g, b, alpha).endVertex();
+        buffer.vertex(matrix, x1 + offset, y1 + offset, z2 - offset).color(r, g, b, alpha).endVertex();
+        buffer.vertex(matrix, x2 - offset, y1 + offset, z2 - offset).color(r, g, b, alpha).endVertex();
+        buffer.vertex(matrix, x2 - offset, y1 + offset, z1 + offset).color(r, g, b, alpha).endVertex();
+        
+        // Top face (inner)
+        buffer.vertex(matrix, x1 + offset, y2 - offset, z1 + offset).color(r, g, b, alpha).endVertex();
+        buffer.vertex(matrix, x2 - offset, y2 - offset, z1 + offset).color(r, g, b, alpha).endVertex();
+        buffer.vertex(matrix, x2 - offset, y2 - offset, z2 - offset).color(r, g, b, alpha).endVertex();
+        buffer.vertex(matrix, x1 + offset, y2 - offset, z2 - offset).color(r, g, b, alpha).endVertex();
+        
+        // North face (inner)
+        buffer.vertex(matrix, x1 + offset, y1 + offset, z1 + offset).color(r, g, b, alpha).endVertex();
+        buffer.vertex(matrix, x2 - offset, y1 + offset, z1 + offset).color(r, g, b, alpha).endVertex();
+        buffer.vertex(matrix, x2 - offset, y2 - offset, z1 + offset).color(r, g, b, alpha).endVertex();
+        buffer.vertex(matrix, x1 + offset, y2 - offset, z1 + offset).color(r, g, b, alpha).endVertex();
+        
+        // South face (inner)
+        buffer.vertex(matrix, x2 - offset, y1 + offset, z2 - offset).color(r, g, b, alpha).endVertex();
+        buffer.vertex(matrix, x1 + offset, y1 + offset, z2 - offset).color(r, g, b, alpha).endVertex();
+        buffer.vertex(matrix, x1 + offset, y2 - offset, z2 - offset).color(r, g, b, alpha).endVertex();
+        buffer.vertex(matrix, x2 - offset, y2 - offset, z2 - offset).color(r, g, b, alpha).endVertex();
+        
+        // West face (inner)
+        buffer.vertex(matrix, x1 + offset, y1 + offset, z2 - offset).color(r, g, b, alpha).endVertex();
+        buffer.vertex(matrix, x1 + offset, y1 + offset, z1 + offset).color(r, g, b, alpha).endVertex();
+        buffer.vertex(matrix, x1 + offset, y2 - offset, z1 + offset).color(r, g, b, alpha).endVertex();
+        buffer.vertex(matrix, x1 + offset, y2 - offset, z2 - offset).color(r, g, b, alpha).endVertex();
+        
+        // East face (inner)
+        buffer.vertex(matrix, x2 - offset, y1 + offset, z1 + offset).color(r, g, b, alpha).endVertex();
+        buffer.vertex(matrix, x2 - offset, y1 + offset, z2 - offset).color(r, g, b, alpha).endVertex();
+        buffer.vertex(matrix, x2 - offset, y2 - offset, z2 - offset).color(r, g, b, alpha).endVertex();
+        buffer.vertex(matrix, x2 - offset, y2 - offset, z1 + offset).color(r, g, b, alpha).endVertex();
+        
         tesselator.end();
         
         poseStack.popPose();
+        RenderSystem.enableCull(); // Re-enable face culling
         RenderSystem.disableBlend();
     }
 }
