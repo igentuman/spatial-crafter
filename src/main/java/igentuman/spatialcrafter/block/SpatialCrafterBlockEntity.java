@@ -19,6 +19,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
@@ -213,10 +214,7 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         
         BlockPos scanCenterPos = centerPos.relative(facing.getOpposite(), scanSize);
         
-        net.minecraft.world.phys.AABB scanArea = new net.minecraft.world.phys.AABB(
-            scanCenterPos.getX() - scanSize + 1, centerPos.getY(), scanCenterPos.getZ() - scanSize + 1,
-            scanCenterPos.getX() + scanSize - 1.0001, centerPos.getY() + scanSize*2-2, scanCenterPos.getZ() + scanSize - 0.9999
-        );
+        net.minecraft.world.phys.AABB scanArea = getScanArea();
         
         BlockPos min = new BlockPos((int) scanArea.minX, (int) scanArea.minY, (int) scanArea.minZ);
         BlockPos max = new BlockPos((int) scanArea.maxX, (int) scanArea.maxY, (int) scanArea.maxZ);
@@ -509,9 +507,9 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         }
     }
     
-    public net.minecraft.world.phys.AABB getScanArea() {
+    public AABB getScanArea() {
         if (level == null) {
-            return new net.minecraft.world.phys.AABB(
+            return new AABB(
                 worldPosition.getX() - size, worldPosition.getY(), worldPosition.getZ() - size,
                 worldPosition.getX() + size + 1, worldPosition.getY() + size + 1, worldPosition.getZ() + size + 1
             );
@@ -520,11 +518,28 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         BlockState state = level.getBlockState(worldPosition);
         Direction facing = state.getValue(BlockStateProperties.HORIZONTAL_FACING);
         
-        BlockPos centerPos = worldPosition.relative(facing.getOpposite(), size);
-        
-        return new net.minecraft.world.phys.AABB(
-            centerPos.getX() - size+1, worldPosition.getY(), centerPos.getZ() - size+1,
-            centerPos.getX() + size - 1.0001, worldPosition.getY() + size*2 - 1.0001, centerPos.getZ() + size - 0.9999
-        );
+        BlockPos centerPos = worldPosition.relative(facing.getOpposite(), 1);
+        return switch (facing) {
+            case NORTH -> new AABB(
+                    centerPos.getX() - size, worldPosition.getY(), centerPos.getZ(),
+                    centerPos.getX() + size, worldPosition.getY() + size*2, centerPos.getZ() + size*2
+            );
+            case SOUTH -> new AABB(
+                    centerPos.getX() - size, worldPosition.getY(), centerPos.getZ(),
+                    centerPos.getX() + size, worldPosition.getY() + size*2, centerPos.getZ() - size*2
+            );
+            case EAST -> new AABB(
+                    centerPos.getX(), worldPosition.getY(), centerPos.getZ() - size,
+                    centerPos.getX() - size*2, worldPosition.getY() + size*2, centerPos.getZ() + size
+            );
+            case WEST -> new AABB(
+                    centerPos.getX(), worldPosition.getY(), centerPos.getZ() - size,
+                    centerPos.getX() + size*2, worldPosition.getY() + size*2, centerPos.getZ() + size
+            );
+            default -> new AABB(
+                    centerPos.getX() - size+1, worldPosition.getY(), centerPos.getZ() - size+1,
+                    centerPos.getX() + size - 1.0001, worldPosition.getY() + size*2 - 1.0001, centerPos.getZ() + size - 0.9999
+            );
+        };
     }
 }

@@ -117,13 +117,11 @@ dependencies {
     implementation fg.deobf("curse.maven:extreme-reactors-250277:6772552")
     implementation fg.deobf("curse.maven:zerocore-247921:5850671")
     compileOnly fg.deobf("curse.maven:ldlib-626676:6849454")
-    implementation fg.deobf("curse.maven:just-enough-mekanism-multiblocks-898746:6170219"){
-        transitive = false
-    }
+
     /*runtimeOnly fg.deobf("curse.maven:blood-magic-224791:5290993") {
         transitive = false
     }*/
-    implementation fg.deobf("curse.maven:multi-builder-tool-827020:6877370")
+    implementation fg.deobf("curse.maven:multi-builder-tool-827020:6975651")
     implementation fg.deobf("curse.maven:nuclearcraft-neoteric-840010:6825786")
     //runtimeOnly fg.deobf("curse.maven:mantle-74924:6603205")
     //runtimeOnly fg.deobf("curse.maven:tinkers-construct-74072:6603344")
