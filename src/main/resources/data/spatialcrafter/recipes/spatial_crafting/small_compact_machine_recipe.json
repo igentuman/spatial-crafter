@@ -1,0 +1,12 @@
+{
+  "type": "spatialcrafter:spatial_crafting",
+  "multiblock": "spatialcrafter:spatial_structures/small_compact_machine.nbt",
+  "processing_time": 300,
+  "energy_consumption": 100,
+  "outputs": [
+    {
+      "item": "compactmachines:machine_small",
+      "count": 1
+    }
+  ]
+}

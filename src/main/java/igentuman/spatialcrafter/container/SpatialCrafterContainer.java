@@ -99,4 +99,16 @@ public class SpatialCrafterContainer extends AbstractContainerMenu {
     public SpatialCrafterBlockEntity getBlockEntity() {
         return blockEntity;
     }
+    
+    public int getProcessingProgress() {
+        return blockEntity.getProcessingProgress();
+    }
+    
+    public int getMaxProgress() {
+        return blockEntity.getMaxProgress();
+    }
+    
+    public boolean isProcessing() {
+        return blockEntity.isProcessing();
+    }
 }

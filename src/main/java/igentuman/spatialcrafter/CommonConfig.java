@@ -37,30 +37,23 @@ public class CommonConfig {
     }
 
     public static class General {
-        public final ForgeConfigSpec.ConfigValue<Integer> fe_per_tick;
         public final ForgeConfigSpec.IntValue recipe_energy_multiplier;
         public final ForgeConfigSpec.DoubleValue recipe_time_multiplier;
         public final ForgeConfigSpec.BooleanValue enable_entity_spawning;
         public final ForgeConfigSpec.BooleanValue enable_structure_preview;
+        public final ForgeConfigSpec.BooleanValue replace_vanilla_recipes;
 
         public General(ForgeConfigSpec.Builder builder) {
-            builder.push("General");
 
-            fe_per_tick = builder
-                    .comment("Base FE per tick consumption")
-                    .define("fe_per_tick", 5000);
-
-            builder.pop();
-            
             builder.push("Recipes");
             
             recipe_energy_multiplier = builder
                     .comment("Multiplier for recipe energy consumption")
-                    .defineInRange("recipe_energy_multiplier", 1, 1, 10);
+                    .defineInRange("recipe_energy_multiplier", 100, 1, 100000);
                     
             recipe_time_multiplier = builder
                     .comment("Multiplier for recipe processing time")
-                    .defineInRange("recipe_time_multiplier", 1.0, 0.1, 5.0);
+                    .defineInRange("recipe_time_multiplier", 1.0, 0.1, 100.0);
                     
             enable_entity_spawning = builder
                     .comment("Enable entity spawning from recipes")
@@ -70,7 +63,27 @@ public class CommonConfig {
                     .comment("Enable structure preview rendering when a recipe is active")
                     .define("enable_structure_preview", true);
 
+            replace_vanilla_recipes = builder
+                    .comment("Repace vanilla crafting table recipes with spatial versions")
+                    .define("replace_vanilla_recipes", true);
+
             builder.pop();
         }
     }
+
+    public final static List<String> toHide = List.of(
+            "compactmachines:wall",
+            "compactmachines:machine_giant",
+            "compactmachines:machine_large",
+            "compactmachines:machine_maximum",
+            "compactmachines:machine_normal",
+            "compactmachines:machine_small",
+            "compactmachines:machine_tiny",
+            "compactmekanismmachinesplus:compact_thermoelectric_boiler",
+            "compactmekanismmachinesplus:compact_fusion_reactor",
+            "compactmekanismmachinesplus:compact_sps",
+            "compactmekanismmachines:compact_thermal_evaporation",
+            "compactmekanismmachines:compact_fission_reactor",
+            "compactmekanismmachines:compact_industrial_turbine"
+    );
 }

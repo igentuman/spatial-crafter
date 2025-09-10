@@ -22,6 +22,7 @@ public class MultiblockStructureRecipe {
     private final MultiblockStructure structure;
     public int currentLayer = 0;
     public List<ItemStack> outputs = new ArrayList<>();
+    public List<ItemStack> structureIngredients = new ArrayList<>();
     private IIngredientManager ingredientManager;
     private SpatialCrafterRecipe spatialRecipe;
 
@@ -36,10 +37,10 @@ public class MultiblockStructureRecipe {
             Block block = structure.getBlocks().get(pos).getBlock();
             if (!blocks.contains(block)) {
                 blocks.add(block);
-                outputs.add(new ItemStack(block));
+                structureIngredients.add(new ItemStack(block));
             }
         }
-        for(ItemStack stackItem :outputs) {
+        for(ItemStack stackItem :structureIngredients) {
             for(Map.Entry<BlockPos, BlockState> block : structure.getBlocks().entrySet()) {
                 if(stackItem.is(block.getValue().getBlock().asItem())) {
                     stackItem.setCount(stackItem.getCount() + 1);
@@ -74,6 +75,11 @@ public class MultiblockStructureRecipe {
         if (currentLayer < structure.getMinY()) {
             currentLayer = structure.getMaxY();
         }
+    }
+
+    public Ingredient getStructureIngredients() {
+        Ingredient ingredient = Ingredient.of(structureIngredients.toArray(new ItemStack[0]));
+        return ingredient;
     }
 
     public Ingredient getIngredients() {
@@ -112,5 +118,9 @@ public class MultiblockStructureRecipe {
     
     public int getEnergyConsumption() {
         return spatialRecipe != null ? spatialRecipe.getEnergyConsumption() : 0;
+    }
+
+    public List<SpatialCrafterRecipe.EntityOutput> getRecipeEntities() {
+        return spatialRecipe != null ? spatialRecipe.getEntityOutputs(): List.of();
     }
 }

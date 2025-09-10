@@ -1,0 +1,13 @@
+{
+  "type": "spatialcrafter:spatial_crafting",
+  "multiblock": "spatialcrafter:spatial_structures/slime.nbt",
+  "processing_time": 300,
+  "energy_consumption": 100,
+  "entity_outputs": [
+    {
+      "entity": "minecraft:slime",
+      "count": 2,
+      "position": [0, 1, 0]
+    }
+  ]
+}

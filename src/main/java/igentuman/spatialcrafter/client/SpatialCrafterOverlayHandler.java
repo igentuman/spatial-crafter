@@ -50,25 +50,26 @@ public class SpatialCrafterOverlayHandler {
         for (BlockPos pos : spatialCrafterBlocks) {
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof SpatialCrafterBlockEntity spatialCrafter) {
+                if(spatialCrafter.isDisabled) continue;
+                AABB scanArea = spatialCrafter.getScanArea();
+                float alpha = 0.125f;
                 // Check if there's a current recipe and render structure preview
                 SpatialCrafterRecipe currentRecipe = spatialCrafter.getCurrentRecipe();
                 if (currentRecipe instanceof SpatialCrafterRecipe && spatialCrafter.isProcessing()) {
                     PreviewRenderer.setStructure(currentRecipe.getStructure());
-                    PreviewRenderer.renderPreview(spatialCrafter.getBlockPos().above(), event.getPoseStack(), event.getPartialTick(), event.getRenderTick());
-                } else {
-                    // Render the normal scan area if no recipe is active
-                    AABB scanArea = spatialCrafter.getScanArea();
-                    scanArea = scanArea
-                            .setMaxX((int)scanArea.maxX+1.0001)
-                            .setMinX((int)scanArea.minX-0.0001)
-                            .setMaxY((int)scanArea.maxY+1.0001)
-                            .setMinY((int)scanArea.minY-0.0001)
-                            .setMaxZ((int)scanArea.maxZ+1.0001)
-                            .setMinZ((int)scanArea.minZ-0.0001);
-                    
-                    // Render the filled box with transparency
-                    renderFilledBox(event.getPoseStack(), scanArea, 0.2f, 0.8f, 1.0f, 0.25f);
+                    PreviewRenderer.renderPreview(scanArea.getCenter(), event.getPoseStack(), event.getPartialTick(), event.getRenderTick());
+                    alpha = 0.065f;
                 }
+                scanArea = scanArea
+                        .setMaxX((int)scanArea.maxX+1.0001)
+                        .setMinX((int)scanArea.minX-0.0001)
+                        .setMaxY((int)scanArea.maxY+1.0001)
+                        .setMinY((int)scanArea.minY-0.0001)
+                        .setMaxZ((int)scanArea.maxZ+1.0001)
+                        .setMinZ((int)scanArea.minZ-0.0001);
+
+                // Render the filled box with transparency
+                renderFilledBox(event.getPoseStack(), scanArea, 0.2f, 0.8f, 1.0f, alpha);
             }
         }
     }

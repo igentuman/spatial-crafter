@@ -1,0 +1,12 @@
+{
+  "type": "spatialcrafter:spatial_crafting",
+  "multiblock": "spatialcrafter:spatial_structures/compact_mek_turbine.nbt",
+  "processing_time": 1000,
+  "energy_consumption": 1000,
+  "outputs": [
+    {
+      "item": "compactmekanismmachines:compact_industrial_turbine",
+      "count": 1
+    }
+  ]
+}

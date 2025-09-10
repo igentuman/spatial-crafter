@@ -11,6 +11,7 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -29,6 +30,7 @@ public class Setup {
     private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
     private static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, MODID);
     private static final DeferredRegister<MenuType<?>> CONTAINERS = DeferredRegister.create(ForgeRegistries.MENU_TYPES, MODID);
+    private static final DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(ForgeRegistries.SOUND_EVENTS, MODID);
     
     // Recipe Types
     public static final DeferredRegister<RecipeType<?>> RECIPE_TYPES = 
@@ -58,6 +60,12 @@ public class Setup {
     public static final RegistryObject<RecipeSerializer<SpatialCrafterRecipe>> SPATIAL_CRAFTING_SERIALIZER = 
         RECIPE_SERIALIZERS.register("spatial_crafting", () -> SpatialCrafterRecipeSerializer.INSTANCE);
 
+    // Sound Events
+    public static final RegistryObject<SoundEvent> SPATIAL_CRAFTER_START = SOUND_EVENTS.register("spatial_crafter_start",
+            () -> SoundEvent.createVariableRangeEvent(Main.rl("spatial_crafter_start")));
+    
+    public static final RegistryObject<SoundEvent> SPATIAL_CRAFTER_COMPLETE = SOUND_EVENTS.register("spatial_crafter_complete",
+            () -> SoundEvent.createVariableRangeEvent(Main.rl("spatial_crafter_complete")));
 
     public static void init() {
         IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
@@ -67,6 +75,7 @@ public class Setup {
         CONTAINERS.register(bus);
         RECIPE_TYPES.register(bus);
         RECIPE_SERIALIZERS.register(bus);
+        SOUND_EVENTS.register(bus);
     }
 
 

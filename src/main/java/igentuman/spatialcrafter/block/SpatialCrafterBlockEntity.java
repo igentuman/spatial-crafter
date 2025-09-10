@@ -9,6 +9,7 @@ import igentuman.spatialcrafter.util.CustomEnergyStorage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
@@ -32,12 +33,13 @@ import net.minecraftforge.items.ItemStackHandler;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.HashMap;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import static igentuman.spatialcrafter.Setup.SPATIAL_CRAFTER_BE;
+import static igentuman.spatialcrafter.Setup.SPATIAL_CRAFTER_START;
+import static igentuman.spatialcrafter.Setup.SPATIAL_CRAFTER_COMPLETE;
 import static net.minecraft.world.level.block.Blocks.AIR;
 
 public class SpatialCrafterBlockEntity extends BlockEntity {
@@ -64,12 +66,8 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
     // Track ongoing scan to prevent multiple concurrent scans
     private CompletableFuture<Void> currentScan = null;
 
-    private int ensureOddSize(int inputSize) {
-        // Clamp to valid range (1-31, keeping it odd)
-        int clampedSize = Math.max(1, Math.min(31, inputSize));
-
-        
-        return clampedSize;
+    private int size(int inputSize) {
+        return Math.max(1, Math.min(27, inputSize));
     }
 
     public SpatialCrafterBlockEntity(BlockPos pos, BlockState state) {
@@ -122,42 +120,40 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
     }
 
     public boolean isDisabled = false;
-    public int fePerTick = CommonConfig.GENERAL.fe_per_tick.get();
     private long tick = 0;
 
     private void updateRedstoneControl()
     {
-
-        /*if(level.getBlockState(worldPosition).getValue(BlockStateProperties.POWERED) != false) {
-            setChanged();
-            level.setBlock(worldPosition, level.getBlockState(worldPosition).setValue(BlockStateProperties.POWERED, false),
-                    Block.UPDATE_ALL);
-        }*/
+        isDisabled = level.getBestNeighborSignal(worldPosition) > 0;
     }
 
     public void tickServer() {
-        if(level == null) return;
+        if(level == null || level.isClientSide()) return;
         tick++;
-        
+        boolean wasDisabled = isDisabled;
+
+        if(level.getGameTime() % 10 == 0) {
+            updateRedstoneControl();
+        }
+        if(wasDisabled != isDisabled) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState().setValue(BlockStateProperties.POWERED, isDisabled && isProcessing), Block.UPDATE_ALL);
+            setChanged();
+        }
+        if(isDisabled) {
+            return;
+        }
         // Process crafting
         if (isProcessing) {
             processCrafting();
-        } else if(level.getGameTime() % 20 == 0) {
+        } else if(level.getGameTime() % 40 == 0) {
             scanForRecipe();
         }
         
-        if(tick % 10 == 0) {
-            if(!level.isClientSide()) {
-                boolean lastState = isDisabled;
-                updateRedstoneControl();
-                if(currentRecipe != null) {
-                    level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState().setValue(BlockStateProperties.POWERED, true), Block.UPDATE_ALL);
-                } else {
-                    level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState().setValue(BlockStateProperties.POWERED, false), Block.UPDATE_ALL);
-                }
-                if(isDisabled) {
-                    return;
-                }
+        if(level.getGameTime() % 20 == 0) {
+            if(currentRecipe != null) {
+                level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState().setValue(BlockStateProperties.POWERED, true), Block.UPDATE_ALL);
+            } else {
+                level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState().setValue(BlockStateProperties.POWERED, false), Block.UPDATE_ALL);
             }
         }
     }
@@ -247,6 +243,9 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         clearArea();
         processingProgress = 0;
         isProcessing = true;
+        
+        level.playSound(null, worldPosition, SPATIAL_CRAFTER_START.get(), SoundSource.BLOCKS, 0.8f, 1.0f);
+
         setChanged();
     }
 
@@ -330,7 +329,7 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
                         BlockPos center = new BlockPos((int) getScanArea().getCenter().x, (int) getScanArea().getCenter().y, (int) getScanArea().getCenter().z);
                         // Position entity
                         BlockPos spawnPos = center.offset(entityOutput.getRelativePos());
-                        entity.setPos(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5);
+                        entity.setPos(spawnPos.getX() + 0.5, spawnPos.getY()-1, spawnPos.getZ() + 0.5);
                         
                         level.addFreshEntity(entity);
                     }
@@ -338,6 +337,9 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
             }
         }
         
+        // Play completion sound
+        level.playSound(null, worldPosition, SPATIAL_CRAFTER_COMPLETE.get(), SoundSource.BLOCKS, 0.8f, 1.0f);
+
         // Reset processing state
         currentRecipe = null;
         processingProgress = 0;
@@ -348,7 +350,7 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
     private CustomEnergyStorage createEnergyStorage() {
         return new CustomEnergyStorage (
                 getMaxEnergy(),
-                        CommonConfig.GENERAL.fe_per_tick.get()*100
+                getMaxEnergy()
         ) {
             @Override
             public int receiveEnergy(int maxReceive, boolean simulate) {
@@ -409,7 +411,7 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         }
         isProcessing = tag.getBoolean("isProcessing");
         processingProgress = tag.getInt("processingProgress");
-        size = tag.contains("size") ? ensureOddSize(tag.getInt("size")) : 5;
+        size = tag.contains("size") ? size(tag.getInt("size")) : 5;
         
         if (tag.contains("currentRecipe") && level != null) {
             ResourceLocation recipeId = ResourceLocation.tryParse(tag.getString("currentRecipe"));
@@ -433,7 +435,7 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         }
         isProcessing = tag.getBoolean("isProcessing");
         processingProgress = tag.getInt("processingProgress");
-        size = tag.contains("size") ? ensureOddSize(tag.getInt("size")) : 5;
+        size = tag.contains("size") ? size(tag.getInt("size")) : 5;
         
         if (tag.contains("currentRecipe")) {
             ResourceLocation recipeId = ResourceLocation.tryParse(tag.getString("currentRecipe"));
@@ -468,7 +470,7 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
     }
 
     public int getMaxEnergy() {
-        return CommonConfig.GENERAL.fe_per_tick.get()*100;
+        return CommonConfig.GENERAL.recipe_energy_multiplier.get()*100000;
     }
 
     public void tickClient() {
@@ -500,7 +502,7 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
     }
     
     public void setSize(int newSize) {
-        this.size = ensureOddSize(newSize);
+        this.size = size(newSize);
         setChanged();
         if (level != null && !level.isClientSide) {
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_ALL);

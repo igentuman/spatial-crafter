@@ -1,0 +1,12 @@
+{
+  "type": "spatialcrafter:spatial_crafting",
+  "multiblock": "spatialcrafter:spatial_structures/maximum_compact_machine.nbt",
+  "processing_time": 700,
+  "energy_consumption": 100,
+  "outputs": [
+    {
+      "item": "compactmachines:machine_maximum",
+      "count": 1
+    }
+  ]
+}

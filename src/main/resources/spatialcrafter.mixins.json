@@ -1,9 +1,10 @@
 {
-  "required": false,
+  "required": true,
   "package": "igentuman.spatialcrafter.mixin",
   "compatibilityLevel": "JAVA_17",
-  "refmap": "nuclearcraft.refmap.json",
+  "refmap": "spatialcrafter.refmap.json",
   "mixins": [
+    "CraftingHelperMixin"
   ],
   "server": [
   ],

@@ -1,12 +1,12 @@
 {
   "type": "spatialcrafter:spatial_crafting",
-  "multiblock": "spatialcrafter:spatial_structures/diamond_altar.nbt",
+  "multiblock": "spatialcrafter:spatial_structures/compact_machine_wall.nbt",
   "processing_time": 200,
   "energy_consumption": 100,
   "outputs": [
     {
-      "item": "minecraft:diamond",
-      "count": 8
+      "item": "compactmachines:wall",
+      "count": 16
     }
   ]
 }

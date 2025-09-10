@@ -23,7 +23,7 @@ public class IngredientsButton extends GuiIconToggleButton {
 
 	@Override
 	protected void getTooltips(JeiTooltip tooltip) {
-		for(ItemStack i : recipe.getIngredients().getItems())
+		for(ItemStack i : recipe.getStructureIngredients().getItems())
 			tooltip.add(FormattedText.of(i.getCount() + "x " + i.getHoverName().getString()));
 	}
 

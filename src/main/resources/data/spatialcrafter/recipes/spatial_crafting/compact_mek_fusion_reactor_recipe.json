@@ -1,0 +1,12 @@
+{
+  "type": "spatialcrafter:spatial_crafting",
+  "multiblock": "spatialcrafter:spatial_structures/mekanism_fusion_reactor.nbt",
+  "processing_time": 1000,
+  "energy_consumption": 1000,
+  "outputs": [
+    {
+      "item": "compactmekanismmachinesplus:compact_fusion_reactor",
+      "count": 1
+    }
+  ]
+}

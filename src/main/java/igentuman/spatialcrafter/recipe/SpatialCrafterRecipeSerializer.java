@@ -3,6 +3,8 @@ package igentuman.spatialcrafter.recipe;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import igentuman.spatialcrafter.Main;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.TagParser;
@@ -10,6 +12,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.ShapedRecipe;
@@ -26,7 +29,7 @@ public class SpatialCrafterRecipeSerializer implements RecipeSerializer<SpatialC
     public SpatialCrafterRecipe fromJson(ResourceLocation recipeId, JsonObject json) {
         ResourceLocation multiblockId = ResourceLocation.tryParse(GsonHelper.getAsString(json, "multiblock"));
         if (multiblockId == null) {
-            throw new RuntimeException("Invalid multiblock ID in recipe " + recipeId);
+            throw new JsonParseException("Invalid multiblock ID in recipe " + recipeId);
         }
         
         // Parse outputs
@@ -35,6 +38,7 @@ public class SpatialCrafterRecipeSerializer implements RecipeSerializer<SpatialC
             JsonArray outputsArray = GsonHelper.getAsJsonArray(json, "outputs");
             for (JsonElement element : outputsArray) {
                 JsonObject outputObj = element.getAsJsonObject();
+                
                 ItemStack stack = ShapedRecipe.itemStackFromJson(outputObj);
                 
                 // Handle NBT data
@@ -43,7 +47,7 @@ public class SpatialCrafterRecipeSerializer implements RecipeSerializer<SpatialC
                         CompoundTag nbt = TagParser.parseTag(outputObj.get("nbt").getAsString());
                         stack.setTag(nbt);
                     } catch (Exception e) {
-                        throw new RuntimeException("Invalid NBT data in recipe " + recipeId, e);
+                        throw new JsonParseException("Invalid NBT data in recipe " + recipeId, e);
                     }
                 }
                 outputs.add(stack);
@@ -59,11 +63,11 @@ public class SpatialCrafterRecipeSerializer implements RecipeSerializer<SpatialC
                 
                 ResourceLocation entityId = ResourceLocation.tryParse(GsonHelper.getAsString(entityObj, "entity"));
                 if (entityId == null) {
-                    throw new RuntimeException("Invalid entity ID in recipe " + recipeId);
+                    throw new JsonParseException("Invalid entity ID in recipe " + recipeId);
                 }
                 EntityType<?> entityType = ForgeRegistries.ENTITY_TYPES.getValue(entityId);
                 if (entityType == null) {
-                    throw new RuntimeException("Unknown entity type: " + entityId);
+                    throw new JsonParseException("Unknown entity type '" + entityId + "' in recipe " + recipeId);
                 }
                 
                 CompoundTag nbt = new CompoundTag();
@@ -71,7 +75,7 @@ public class SpatialCrafterRecipeSerializer implements RecipeSerializer<SpatialC
                     try {
                         nbt = TagParser.parseTag(entityObj.get("nbt").getAsString());
                     } catch (Exception e) {
-                        throw new RuntimeException("Invalid entity NBT data in recipe " + recipeId, e);
+                        throw new JsonParseException("Invalid entity NBT data in recipe " + recipeId, e);
                     }
                 }
                 
@@ -99,7 +103,7 @@ public class SpatialCrafterRecipeSerializer implements RecipeSerializer<SpatialC
             try {
                 outputNbt = TagParser.parseTag(json.get("global_nbt").getAsString());
             } catch (Exception e) {
-                throw new RuntimeException("Invalid global NBT data in recipe " + recipeId, e);
+                throw new JsonParseException("Invalid global NBT data in recipe " + recipeId, e);
             }
         }
 
@@ -122,10 +126,17 @@ public class SpatialCrafterRecipeSerializer implements RecipeSerializer<SpatialC
         int entityOutputCount = buffer.readVarInt();
         List<SpatialCrafterRecipe.EntityOutput> entityOutputs = new ArrayList<>();
         for (int i = 0; i < entityOutputCount; i++) {
-            EntityType<?> entityType = ForgeRegistries.ENTITY_TYPES.getValue(buffer.readResourceLocation());
+            ResourceLocation entityId = buffer.readResourceLocation();
+            EntityType<?> entityType = ForgeRegistries.ENTITY_TYPES.getValue(entityId);
             CompoundTag nbt = buffer.readNbt();
             BlockPos pos = buffer.readBlockPos();
             int count = buffer.readVarInt();
+            
+            // If entity type is null, skip this recipe (shouldn't happen in network but safety check)
+            if (entityType == null) {
+                throw new RuntimeException("Unknown entity type '" + entityId + "' received from network");
+            }
+            
             entityOutputs.add(new SpatialCrafterRecipe.EntityOutput(entityType, nbt, pos, count));
         }
         

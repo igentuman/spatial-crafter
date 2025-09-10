@@ -23,7 +23,7 @@ public class SpatialCrafterScreen extends AbstractContainerScreen<SpatialCrafter
     public SpatialCrafterScreen(SpatialCrafterContainer container, Inventory inv, Component name) {
         super(container, inv, name);
         imageWidth = 180;
-        imageHeight = 168;
+        imageHeight = 162;
     }
 
 
@@ -57,7 +57,7 @@ public class SpatialCrafterScreen extends AbstractContainerScreen<SpatialCrafter
         // Increase size button (+)
         increaseSizeButton = Button.builder(Component.translatable("button.spatialcrafter.size_increase"), button -> {
             int currentSize = menu.getSize();
-            if (currentSize < 31) {
+            if (currentSize < 27) {
                 NetworkHandler.INSTANCE.sendToServer(new SizeChangePacket(menu.getBlockEntity().getBlockPos(), currentSize + 1));
             }
         })
@@ -76,7 +76,7 @@ public class SpatialCrafterScreen extends AbstractContainerScreen<SpatialCrafter
         if (decreaseSizeButton != null && increaseSizeButton != null) {
             int currentSize = menu.getSize();
             decreaseSizeButton.active = currentSize > 1;
-            increaseSizeButton.active = currentSize < 31;
+            increaseSizeButton.active = currentSize < 27;
         }
     }
 
@@ -93,8 +93,17 @@ public class SpatialCrafterScreen extends AbstractContainerScreen<SpatialCrafter
         Component sizeText = Component.translatable("gui.spatialcrafter.size", menu.getSize());
         graphics.drawCenteredString(Minecraft.getInstance().font, sizeText, imageWidth/2, 55, 0xffffff);
 
+        // Display progress if processing
+        if(menu.isProcessing()) {
+            int progress = menu.getProcessingProgress();
+            int maxProgress = menu.getMaxProgress();
+            int percentage = maxProgress > 0 ? (progress * 100) / maxProgress : 0;
+            Component progressText = Component.translatable("gui.spatialcrafter.progress", percentage);
+            graphics.drawCenteredString(Minecraft.getInstance().font, progressText, imageWidth/2, 41, 0x00ff00);
+        }
+
         if(menu.isDisabled()) {
-            graphics.drawString(Minecraft.getInstance().font, Component.translatable("gui.spatialcrafter.disabled"), 10, 65, 0xffffff);
+            graphics.drawString(Minecraft.getInstance().font, Component.translatable("gui.spatialcrafter.disabled"), 10, 85, 0xffffff);
         }
     }
 
@@ -104,5 +113,6 @@ public class SpatialCrafterScreen extends AbstractContainerScreen<SpatialCrafter
             Component textComponent = Component.translatable("gui.spatialcrafter.energy.info", menu.getEnergy(), menu.getMaxEnergy());
             graphics.renderTooltip(Minecraft.getInstance().font, textComponent, x, y);
         }
+        super.renderTooltip(graphics, x, y);
     }
 }

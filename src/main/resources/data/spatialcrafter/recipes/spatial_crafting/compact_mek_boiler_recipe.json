@@ -1,0 +1,12 @@
+{
+  "type": "spatialcrafter:spatial_crafting",
+  "multiblock": "spatialcrafter:spatial_structures/mekanism_boiler.nbt",
+  "processing_time": 1000,
+  "energy_consumption": 1000,
+  "outputs": [
+    {
+      "item": "compactmekanismmachinesplus:compact_thermoelectric_boiler",
+      "count": 1
+    }
+  ]
+}

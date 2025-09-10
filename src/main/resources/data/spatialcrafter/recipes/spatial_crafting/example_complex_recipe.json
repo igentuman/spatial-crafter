@@ -2,16 +2,11 @@
   "type": "spatialcrafter:spatial_crafting",
   "multiblock": "spatialcrafter:spatial_structures/wither_altar.nbt",
   "processing_time": 600,
-  "energy_consumption": 5000,
+  "energy_consumption": 1000,
   "outputs": [
     {
-      "item": "minecraft:nether_star",
-      "count": 1,
-      "nbt": "{display:{Name:'{\"text\":\"Spatial Star\",\"color\":\"purple\"}',Lore:['{\"text\":\"Crafted with spatial energy\",\"color\":\"gray\"}']}}"
-    },
-    {
       "item": "minecraft:emerald",
-      "count": 2,
+      "count": 1,
       "nbt": "{Enchantments:[{id:\"minecraft:unbreaking\",lvl:3}]}"
     }
   ],

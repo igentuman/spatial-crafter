@@ -1,16 +1,17 @@
 package igentuman.spatialcrafter;
 
-import igentuman.spatialcrafter.client.SpatialCrafterOverlayHandler;
 import igentuman.spatialcrafter.client.SpatialCrafterScreen;
+import igentuman.spatialcrafter.integration.compactmachines.CCUtil;
 import igentuman.spatialcrafter.network.NetworkHandler;
 import igentuman.spatialcrafter.util.MultiblocksProvider;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTabs;
-import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
+import net.minecraftforge.event.server.ServerAboutToStartEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
@@ -57,6 +58,13 @@ public class Main
     private void addCreative(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(SPATIAL_CRAFTER_ITEM);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onServerAboutToStart(ServerAboutToStartEvent event) {
+        if(CommonConfig.GENERAL.replace_vanilla_recipes.get() && ModList.get().isLoaded("compactmachines")) {
+            CCUtil.disableVanillaRecipes();
         }
     }
 

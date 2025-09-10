@@ -1,6 +1,8 @@
 package igentuman.spatialcrafter.integration.jei;
 
+import igentuman.spatialcrafter.CommonConfig;
 import igentuman.spatialcrafter.recipe.SpatialCrafterRecipe;
+import igentuman.spatialcrafter.recipe.SpatialCrafterRecipeManager;
 import igentuman.spatialcrafter.recipe.SpatialCrafterRecipeType;
 import igentuman.spatialcrafter.util.MultiblocksProvider;
 import mezz.jei.api.IModPlugin;
@@ -10,11 +12,17 @@ import mezz.jei.api.registration.IRecipeRegistration;
 import mezz.jei.api.runtime.IIngredientManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.RecipeManager;
+import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraftforge.fml.ModList;
+import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static igentuman.spatialcrafter.Main.rl;
 
@@ -54,8 +62,7 @@ public class JEIPlugin implements IModPlugin {
         
         // Load spatial crafter recipes and enhance multiblock recipes with outputs
         if (Minecraft.getInstance().level != null) {
-            RecipeManager recipeManager = Minecraft.getInstance().level.getRecipeManager();
-            List<SpatialCrafterRecipe> spatialRecipes = recipeManager.getAllRecipesFor(SpatialCrafterRecipeType.INSTANCE);
+            List<SpatialCrafterRecipe> spatialRecipes = SpatialCrafterRecipeManager.getAllRecipes(Minecraft.getInstance().level);
             
             // Enhance existing multiblock recipes with spatial crafter recipe data
             for (SpatialCrafterRecipe spatialRecipe : spatialRecipes) {

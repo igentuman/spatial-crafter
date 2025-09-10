@@ -2,6 +2,8 @@ package igentuman.spatialcrafter.integration.jei;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.PoseStack;
+import igentuman.spatialcrafter.CommonConfig;
+import igentuman.spatialcrafter.recipe.SpatialCrafterRecipe;
 import igentuman.spatialcrafter.util.MultiblockStructure;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
@@ -18,6 +20,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
+import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
@@ -36,6 +39,7 @@ import java.util.Map;
 import static igentuman.spatialcrafter.Main.MODID;
 import static igentuman.spatialcrafter.Setup.SPATIAL_CRAFTER_ITEM;
 import static igentuman.spatialcrafter.util.TextUtils.__;
+import static igentuman.spatialcrafter.util.TextUtils.scaledFormat;
 
 
 @SuppressWarnings("removal")
@@ -93,7 +97,7 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
         // Add recipe outputs if available
         if (recipe.hasSpatialRecipe()) {
             List<ItemStack> recipeOutputs = recipe.getRecipeOutputs();
-            for (int i = 0; i < recipeOutputs.size() && i < 6; i++) { // Limit to 6 outputs for display
+            for (int i = 0; i < recipeOutputs.size() && i < 56; i++) { // Limit to 5 outputs for display
                 int x = 120 + (i % 2) * 18;
                 int y = 20 + (i / 2) * 18;
                 builder.addSlot(RecipeIngredientRole.OUTPUT, x, y)
@@ -114,7 +118,7 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
         if(ingredientsButton.isMouseOver(mouseX, mouseY)) {
             ingredientsButton.drawTooltips(graphics, (int) mouseX, (int) mouseY);
         }
-        graphics.drawString(font, __(recipe.getName()), 5, 2, 0xFFFFFFFF);
+        graphics.drawString(font, __(recipe.getName()), 5, 0, 0xFFFFFFFF);
         
         // Draw recipe information if available
         if (recipe.hasSpatialRecipe()) {
@@ -123,7 +127,7 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
             
             // Draw processing time and energy consumption
             int processingTime = recipe.getProcessingTime();
-            int energyConsumption = recipe.getEnergyConsumption();
+            int energyConsumption = recipe.getEnergyConsumption() * CommonConfig.GENERAL.recipe_energy_multiplier.get();
             
             if (processingTime > 0) {
                 Component timeText = Component.translatable("jei.spatialcrafter.processing_time", processingTime / 20.0f);
@@ -131,7 +135,7 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
             }
             
             if (energyConsumption > 0) {
-                Component energyText = Component.translatable("jei.spatialcrafter.energy_consumption", energyConsumption);
+                Component energyText = Component.translatable("jei.spatialcrafter.energy_consumption", scaledFormat(energyConsumption));
                 graphics.drawString(font, energyText.getString(), 90, 125, 0xFFFFFFFF);
             }
         }
@@ -164,7 +168,7 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
         // Render multiblock structure
         graphics.pose().pushPose();
         graphics.pose().translate(80, 75, 100);
-        float scale = 70.0f;
+        float scale = 65.0f;
         graphics.pose().scale(scale, -scale, scale);
 
         if (isMouseDragging && !leftMouseDown) {
@@ -198,8 +202,69 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
         renderer.render(recipe.getStructure(), graphics.pose(), recipe.currentLayer);
 
         graphics.pose().popPose();
+        graphics.pose().pushPose();
+        for(SpatialCrafterRecipe.EntityOutput entity: recipe.getRecipeEntities()) {
+            renderEntity(entity);
+        }
+        graphics.pose().popPose();
     }
-    
+
+    private void renderEntity(SpatialCrafterRecipe.EntityOutput entityOutput) {
+        Minecraft mc = Minecraft.getInstance();
+        EntityRenderDispatcher entityRenderDispatcher = mc.getEntityRenderDispatcher();
+        
+        if (mc.level == null) return;
+        
+        // Create the entity instance
+        net.minecraft.world.entity.Entity entity = entityOutput.getEntityType().create(mc.level);
+        if (entity == null) return;
+        
+        // Apply NBT data if present
+        if (!entityOutput.getNbt().isEmpty()) {
+            entity.load(entityOutput.getNbt());
+        }
+        
+        // Position the entity based on relative position
+        BlockPos relativePos = entityOutput.getRelativePos();
+        entity.setPos(relativePos.getX(), relativePos.getY(), relativePos.getZ());
+        
+        // Set up rendering context
+        PoseStack poseStack = new PoseStack();
+        poseStack.pushPose();
+        
+        // Position the entity in the GUI space
+        poseStack.translate(300, 190, 0); // Position in GUI
+        poseStack.scale(10.0f, -10.0f, 10.0f); // Scale for visibility
+
+        poseStack.mulPose(new Quaternionf().rotationX((float) 0.5f)); // Slow rotation for visibility
+
+        // Apply rotation to match the multiblock rotation
+        poseStack.mulPose(new Quaternionf().rotationY((float) (mc.level.getGameTime() * 0.05f))); // Slow rotation for visibility
+        
+        // Get buffer source for rendering
+        MultiBufferSource.BufferSource bufferSource = mc.renderBuffers().bufferSource();
+        
+        try {
+            // Render the entity
+            entityRenderDispatcher.render(
+                entity,
+                0, 0, 0, // Entity position (already set via translate)
+                0.0f, // Rotation Y
+                0.0f, // Partial tick
+                poseStack,
+                bufferSource,
+                15728880 // Full brightness
+            );
+            
+            // Finish rendering
+            bufferSource.endBatch();
+        } catch (Exception e) {
+            // Silently handle any rendering errors
+        }
+        
+        poseStack.popPose();
+    }
+
     // Inner class to handle rendering of the multiblock structure
     private static class MultiblockRenderer {
 
