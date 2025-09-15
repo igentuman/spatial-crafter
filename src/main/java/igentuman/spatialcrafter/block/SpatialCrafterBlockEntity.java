@@ -240,7 +240,9 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
     public void startCrafting(SpatialCrafterRecipe craftingRecipe) {
         if (level == null || isProcessing) return;
         currentRecipe = craftingRecipe;
-        clearArea();
+        if (!craftingRecipe.getDoNotDestroy()) {
+            clearArea();
+        }
         processingProgress = 0;
         isProcessing = true;
         
@@ -269,8 +271,6 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
     private void processCrafting() {
         if (!isProcessing || currentRecipe == null || level == null) return;
         
-        processingProgress++;
-        
         // Apply config multipliers
         int adjustedEnergyConsumption = (int) (currentRecipe.getEnergyConsumption() * CommonConfig.GENERAL.recipe_energy_multiplier.get());
         int adjustedProcessingTime = (int) (currentRecipe.getProcessingTime() * CommonConfig.GENERAL.recipe_time_multiplier.get());
@@ -283,7 +283,8 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
             // Not enough energy, pause processing
             return;
         }
-        
+        processingProgress++;
+
         if (processingProgress >= adjustedProcessingTime) {
             completeCrafting();
         }

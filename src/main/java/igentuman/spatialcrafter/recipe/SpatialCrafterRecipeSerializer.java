@@ -97,6 +97,7 @@ public class SpatialCrafterRecipeSerializer implements RecipeSerializer<SpatialC
 
         int processingTime = GsonHelper.getAsInt(json, "processing_time", 200);
         int energyConsumption = GsonHelper.getAsInt(json, "energy_consumption", 1000);
+        boolean doNotDestroy = GsonHelper.getAsBoolean(json, "do_not_destroy", false);
         
         CompoundTag outputNbt = new CompoundTag();
         if (json.has("global_nbt")) {
@@ -108,7 +109,7 @@ public class SpatialCrafterRecipeSerializer implements RecipeSerializer<SpatialC
         }
 
         return new SpatialCrafterRecipe(recipeId, multiblockId, outputs, entityOutputs, 
-                                      processingTime, energyConsumption, outputNbt);
+                                      processingTime, energyConsumption, outputNbt, doNotDestroy);
     }
 
     @Override
@@ -143,9 +144,10 @@ public class SpatialCrafterRecipeSerializer implements RecipeSerializer<SpatialC
         int processingTime = buffer.readVarInt();
         int energyConsumption = buffer.readVarInt();
         CompoundTag outputNbt = buffer.readNbt();
+        boolean doNotDestroy = buffer.readBoolean();
 
         return new SpatialCrafterRecipe(recipeId, multiblockId, outputs, entityOutputs, 
-                                      processingTime, energyConsumption, outputNbt);
+                                      processingTime, energyConsumption, outputNbt, doNotDestroy);
     }
 
     @Override
@@ -170,5 +172,6 @@ public class SpatialCrafterRecipeSerializer implements RecipeSerializer<SpatialC
         buffer.writeVarInt(recipe.getProcessingTime());
         buffer.writeVarInt(recipe.getEnergyConsumption());
         buffer.writeNbt(recipe.getOutputNbt());
+        buffer.writeBoolean(recipe.getDoNotDestroy());
     }
 }

@@ -27,6 +27,7 @@ public class SpatialCrafterRecipe implements Recipe<Container> {
     private final int processingTime;
     private final int energyConsumption;
     private final CompoundTag outputNbt;
+    private final boolean doNotDestroy;
     private final HashMap<Long, BlockState> requiredBlockStates = new HashMap<>();
     private final HashMap<Long, BlockState> requiredBlockStatesCW = new HashMap<>();
     private final HashMap<Long, BlockState> requiredBlockStatesCCW = new HashMap<>();
@@ -34,7 +35,7 @@ public class SpatialCrafterRecipe implements Recipe<Container> {
 
     public SpatialCrafterRecipe(ResourceLocation id, ResourceLocation multiblockId, 
                                List<ItemStack> outputs, List<EntityOutput> entityOutputs,
-                               int processingTime, int energyConsumption, CompoundTag outputNbt) {
+                               int processingTime, int energyConsumption, CompoundTag outputNbt, boolean doNotDestroy) {
         this.id = id;
         this.multiblockId = multiblockId;
         this.outputs = outputs;
@@ -42,6 +43,7 @@ public class SpatialCrafterRecipe implements Recipe<Container> {
         this.processingTime = processingTime;
         this.energyConsumption = energyConsumption;
         this.outputNbt = outputNbt;
+        this.doNotDestroy = doNotDestroy;
         initBlockStates();
     }
 
@@ -271,6 +273,7 @@ public class SpatialCrafterRecipe implements Recipe<Container> {
     public int getProcessingTime() { return processingTime; }
     public int getEnergyConsumption() { return energyConsumption; }
     public CompoundTag getOutputNbt() { return outputNbt; }
+    public boolean getDoNotDestroy() { return doNotDestroy; }
     public HashMap<Long, BlockState> getRequiredBlockStates() { return requiredBlockStates; }
     public HashMap<Long, BlockState> getRequiredBlockStatesCW() { return requiredBlockStatesCW; }
     public HashMap<Long, BlockState> getRequiredBlockStatesCCW() { return requiredBlockStatesCCW; }

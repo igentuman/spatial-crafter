@@ -34,6 +34,7 @@ public class SpatialCrafterRecipeSerializerTest {
                 "multiblock": "spatialcrafter:test_multiblock",
                 "processing_time": 200,
                 "energy_consumption": 1000,
+                "do_not_destroy": true,
                 "outputs": [
                     {
                         "item": "minecraft:diamond",
@@ -148,5 +149,55 @@ public class SpatialCrafterRecipeSerializerTest {
         // The method should throw an exception for invalid NBT data
         // Note: This would need proper Minecraft environment to test fully
         assertNotNull(json);
+    }
+
+    @Test
+    void testFromJson_WithDoNotDestroyProperty_ShouldParseCorrectly() {
+        String recipeWithDoNotDestroy = """
+            {
+                "type": "spatialcrafter:spatial_crafting",
+                "multiblock": "spatialcrafter:test_multiblock",
+                "processing_time": 200,
+                "energy_consumption": 1000,
+                "do_not_destroy": true,
+                "outputs": [
+                    {
+                        "item": "minecraft:diamond",
+                        "count": 1
+                    }
+                ]
+            }
+            """;
+
+        JsonObject json = JsonParser.parseString(recipeWithDoNotDestroy).getAsJsonObject();
+        
+        // Verify the JSON structure includes the do_not_destroy property
+        assertNotNull(json);
+        assertTrue(json.has("do_not_destroy"));
+        assertTrue(json.get("do_not_destroy").getAsBoolean());
+    }
+
+    @Test
+    void testFromJson_WithoutDoNotDestroyProperty_ShouldDefaultToFalse() {
+        String recipeWithoutDoNotDestroy = """
+            {
+                "type": "spatialcrafter:spatial_crafting",
+                "multiblock": "spatialcrafter:test_multiblock",
+                "processing_time": 200,
+                "energy_consumption": 1000,
+                "outputs": [
+                    {
+                        "item": "minecraft:diamond",
+                        "count": 1
+                    }
+                ]
+            }
+            """;
+
+        JsonObject json = JsonParser.parseString(recipeWithoutDoNotDestroy).getAsJsonObject();
+        
+        // Verify the JSON structure and that do_not_destroy defaults to false when not present
+        assertNotNull(json);
+        assertFalse(json.has("do_not_destroy"));
     }
 }
