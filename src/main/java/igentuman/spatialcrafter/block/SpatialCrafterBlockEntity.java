@@ -6,9 +6,11 @@ import igentuman.spatialcrafter.client.SpatialCrafterOverlayHandler;
 import igentuman.spatialcrafter.recipe.SpatialCrafterRecipe;
 import igentuman.spatialcrafter.recipe.SpatialCrafterRecipeManager;
 import igentuman.spatialcrafter.util.CustomEnergyStorage;
+import igentuman.spatialcrafter.util.WorldUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.network.Connection;
@@ -45,11 +47,15 @@ import static net.minecraft.world.level.block.Blocks.AIR;
 public class SpatialCrafterBlockEntity extends BlockEntity {
 
     // Static executor for background scanning tasks
-    private static final Executor SCAN_EXECUTOR = Executors.newFixedThreadPool(2, r -> {
-        Thread t = new Thread(r, "SpatialCrafter-Scanner");
-        t.setDaemon(true);
-        return t;
-    });
+    private static final Executor SCAN_EXECUTOR = Executors.newFixedThreadPool(
+            Math.max(2, Runtime.getRuntime().availableProcessors() / 2),
+            r -> {
+                Thread t = new Thread(r, "SpatialCrafter");
+                t.setPriority(Thread.MAX_PRIORITY - 1);
+                t.setDaemon(true);
+                return t;
+            }
+    );
 
     private final CustomEnergyStorage energy = createEnergyStorage();
     private final LazyOptional<IEnergyStorage> energyHandler = LazyOptional.of(() -> energy);
@@ -205,7 +211,7 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         HashMap<Long, BlockState> states = new HashMap<>();
         
         // Calculate scan area using the same logic as getScanArea but with captured parameters
-        BlockState state = level.getBlockState(centerPos);
+        BlockState state = WorldUtil.getBlockState(centerPos, (ServerLevel) level);
         Direction facing = state.getValue(BlockStateProperties.HORIZONTAL_FACING);
         
         BlockPos scanCenterPos = centerPos.relative(facing.getOpposite(), scanSize);
@@ -228,7 +234,7 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
                     // Create relative coordinates from the center
                     BlockPos relativePos = new BlockPos(x - center.getX(), y - center.getY(), z - center.getZ());
                     BlockPos currentPos = new BlockPos(x, y, z);
-                    BlockState blockState = level.getBlockState(currentPos);
+                    BlockState blockState = WorldUtil.getBlockState(currentPos, (ServerLevel) level);
                     states.put(relativePos.asLong(), blockState);
                 }
             }
