@@ -1,7 +1,6 @@
 package igentuman.spatialcrafter.client;
 
 import igentuman.spatialcrafter.container.SpatialCrafterContainer;
-import igentuman.spatialcrafter.network.NetworkHandler;
 import igentuman.spatialcrafter.network.SizeChangePacket;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -11,6 +10,8 @@ import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
+import net.neoforged.neoforge.network.PacketDistributor;
+import org.jetbrains.annotations.NotNull;
 
 import static igentuman.spatialcrafter.Main.rl;
 
@@ -28,8 +29,8 @@ public class SpatialCrafterScreen extends AbstractContainerScreen<SpatialCrafter
 
 
     @Override
-    public void renderBg(GuiGraphics graphics, float pPartialTick, int pMouseX, int pMouseY) {
-        this.renderBackground(graphics);
+    public void renderBg(@NotNull GuiGraphics graphics, float pPartialTick, int pMouseX, int pMouseY) {
+        //this.renderBackground(graphics, pMouseX, pMouseY, pPartialTick);
         int relX = (this.width - this.imageWidth) / 2;
         int relY = (this.height - this.imageHeight) / 2;
         graphics.blit(GUI, relX, relY, 0, 0, this.imageWidth, this.imageHeight);
@@ -47,7 +48,7 @@ public class SpatialCrafterScreen extends AbstractContainerScreen<SpatialCrafter
         decreaseSizeButton = Button.builder(Component.translatable("button.spatialcrafter.size_decrease"), button -> {
             int currentSize = menu.getSize();
             if (currentSize > 1) {
-                NetworkHandler.INSTANCE.sendToServer(new SizeChangePacket(menu.getBlockEntity().getBlockPos(), currentSize - 1));
+                PacketDistributor.sendToServer(new SizeChangePacket(menu.getBlockEntity().getBlockPos(), currentSize - 1));
             }
         })
         .bounds(relX + 10, relY + 50, 20, 20)
@@ -58,7 +59,7 @@ public class SpatialCrafterScreen extends AbstractContainerScreen<SpatialCrafter
         increaseSizeButton = Button.builder(Component.translatable("button.spatialcrafter.size_increase"), button -> {
             int currentSize = menu.getSize();
             if (currentSize < 27) {
-                NetworkHandler.INSTANCE.sendToServer(new SizeChangePacket(menu.getBlockEntity().getBlockPos(), currentSize + 1));
+                PacketDistributor.sendToServer(new SizeChangePacket(menu.getBlockEntity().getBlockPos(), currentSize + 1));
             }
         })
         .bounds(relX + 150, relY + 50, 20, 20)

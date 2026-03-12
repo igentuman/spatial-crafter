@@ -1,16 +1,17 @@
 package igentuman.spatialcrafter;
 
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.fml.ModLoadingContext;
-import net.minecraftforge.fml.config.ModConfig;
+
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.neoforge.common.ModConfigSpec;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class CommonConfig {
-    private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
+    private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
     public static final General GENERAL = new General(BUILDER);
-    public static final ForgeConfigSpec spec = BUILDER.build();
+    public static final ModConfigSpec spec = BUILDER.build();
 
     private static boolean loaded = false;
     private static List<Runnable> loadActions = new ArrayList<>();
@@ -32,18 +33,18 @@ public class CommonConfig {
             loadActions.add(action);
     }
 
-    public static void register() {
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, spec, "spatial-crafter.toml");
+    public static void register(ModContainer container) {
+        container.registerConfig(ModConfig.Type.COMMON, spec, "spatial-crafter.toml");
     }
 
     public static class General {
-        public final ForgeConfigSpec.IntValue recipe_energy_multiplier;
-        public final ForgeConfigSpec.DoubleValue recipe_time_multiplier;
-        public final ForgeConfigSpec.BooleanValue enable_entity_spawning;
-        public final ForgeConfigSpec.BooleanValue enable_structure_preview;
-        public final ForgeConfigSpec.BooleanValue replace_vanilla_recipes;
+        public final ModConfigSpec.IntValue recipe_energy_multiplier;
+        public final ModConfigSpec.DoubleValue recipe_time_multiplier;
+        public final ModConfigSpec.BooleanValue enable_entity_spawning;
+        public final ModConfigSpec.BooleanValue enable_structure_preview;
+        public final ModConfigSpec.BooleanValue replace_vanilla_recipes;
 
-        public General(ForgeConfigSpec.Builder builder) {
+        public General(ModConfigSpec.Builder builder) {
 
             builder.push("Recipes");
             

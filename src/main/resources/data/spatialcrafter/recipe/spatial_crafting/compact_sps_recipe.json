@@ -5,7 +5,7 @@
   "energy_consumption": 1000,
   "outputs": [
     {
-      "item": "compactmekanismmachinesplus:compact_sps",
+      "id": "compactmekanismmachinesplus:compact_sps",
       "count": 1
     }
   ]

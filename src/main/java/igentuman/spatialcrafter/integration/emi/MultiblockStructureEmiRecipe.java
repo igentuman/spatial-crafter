@@ -20,6 +20,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.client.model.data.ModelData;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -220,7 +221,7 @@ public class MultiblockStructureEmiRecipe implements EmiRecipe {
             stack.pushPose();
             stack.translate(pos.getX(), pos.getY(), pos.getZ());
             
-            net.minecraftforge.client.model.data.ModelData modelData = net.minecraftforge.client.model.data.ModelData.EMPTY;
+            ModelData modelData = ModelData.EMPTY;
             
             blockRenderer.renderSingleBlock(
                     state,

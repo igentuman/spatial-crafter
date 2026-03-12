@@ -7,6 +7,7 @@ import igentuman.spatialcrafter.recipe.SpatialCrafterRecipe;
 import igentuman.spatialcrafter.recipe.SpatialCrafterRecipeManager;
 import igentuman.spatialcrafter.util.CustomEnergyStorage;
 import igentuman.spatialcrafter.util.WorldUtil;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -23,14 +24,12 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.energy.IEnergyStorage;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.ItemStackHandler;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.component.CustomData;
+import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.neoforge.energy.IEnergyStorage;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.ItemStackHandler;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -58,11 +57,9 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
     );
 
     private final CustomEnergyStorage energy = createEnergyStorage();
-    private final LazyOptional<IEnergyStorage> energyHandler = LazyOptional.of(() -> energy);
     
     // Recipe processing fields
     private final ItemStackHandler itemHandler = createItemHandler();
-    private final LazyOptional<IItemHandler> itemHandlerLazyOptional = LazyOptional.of(() -> itemHandler);
     private SpatialCrafterRecipe currentRecipe;
     private int processingProgress = 0;
     private boolean isProcessing = false;
@@ -84,16 +81,13 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
     public void onLoad() {
         super.onLoad();
         if (level != null && level.isClientSide) {
-            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> 
-                SpatialCrafterOverlayHandler.addSpatialCrafterBlock(worldPosition));
+            SpatialCrafterOverlayHandler.addSpatialCrafterBlock(worldPosition);
         }
     }
 
     @Override
     public void setRemoved() {
         super.setRemoved();
-        energyHandler.invalidate();
-        itemHandlerLazyOptional.invalidate();
         
         // Cancel any ongoing scan
         if (currentScan != null && !currentScan.isDone()) {
@@ -101,8 +95,7 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         }
         
         if (level != null && level.isClientSide) {
-            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> 
-                SpatialCrafterOverlayHandler.removeSpatialCrafterBlock(worldPosition));
+            SpatialCrafterOverlayHandler.removeSpatialCrafterBlock(worldPosition);
         }
     }
     
@@ -308,8 +301,7 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
             
             // Apply global NBT if present
             if (!currentRecipe.getOutputNbt().isEmpty()) {
-                CompoundTag existingNbt = result.getOrCreateTag();
-                existingNbt.merge(currentRecipe.getOutputNbt());
+                CustomData.update(DataComponents.CUSTOM_DATA, result, tag -> tag.merge(currentRecipe.getOutputNbt()));
             }
             
             // Try to insert into inventory
@@ -372,16 +364,16 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
     }
 
     @Override
-    public CompoundTag getUpdateTag() {
-        CompoundTag tag = super.getUpdateTag();
-        saveClientData(tag);
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        CompoundTag tag = super.getUpdateTag(registries);
+        saveClientData(tag, registries);
         return tag;
     }
 
     @Override
-    public void handleUpdateTag(CompoundTag tag) {
+    public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries) {
         if (tag != null) {
-            loadClientData(tag);
+            loadClientData(tag, registries);
         }
     }
 
@@ -392,30 +384,30 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
     }
 
     @Override
-    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt) {
+    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt, HolderLookup.Provider registries) {
         CompoundTag tag = pkt.getTag();
-        handleUpdateTag(tag);
+        handleUpdateTag(tag, registries);
     }
 
-    private void saveClientData(CompoundTag tag) {
-        tag.put("Energy", energy.serializeNBT());
+    private void saveClientData(CompoundTag tag, HolderLookup.Provider registries) {
+        tag.put("Energy", energy.serializeNBT(registries));
         tag.putBoolean("isDisabled", isDisabled);
-        tag.put("Inventory", itemHandler.serializeNBT());
+        tag.put("Inventory", itemHandler.serializeNBT(registries));
         tag.putBoolean("isProcessing", isProcessing);
         tag.putInt("processingProgress", processingProgress);
         tag.putInt("size", size);
         if (currentRecipe != null) {
-            tag.putString("currentRecipe", currentRecipe.getId().toString());
+            tag.putString("currentRecipe", currentRecipe.getMultiblockId().toString());
         }
     }
 
-    private void loadClientData(CompoundTag tag) {
+    private void loadClientData(CompoundTag tag, HolderLookup.Provider registries) {
         if (tag.contains("Energy")) {
-            energy.deserializeNBT(tag.get("Energy"));
+            energy.deserializeNBT(registries, tag.get("Energy"));
         }
         isDisabled = tag.getBoolean("isDisabled");
         if (tag.contains("Inventory")) {
-            itemHandler.deserializeNBT(tag.getCompound("Inventory"));
+            itemHandler.deserializeNBT(registries, tag.getCompound("Inventory"));
         }
         isProcessing = tag.getBoolean("isProcessing");
         processingProgress = tag.getInt("processingProgress");
@@ -425,21 +417,21 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
             ResourceLocation recipeId = ResourceLocation.tryParse(tag.getString("currentRecipe"));
             if (recipeId != null) {
                 currentRecipe = level.getRecipeManager().byKey(recipeId)
-                        .filter(recipe -> recipe instanceof SpatialCrafterRecipe)
-                        .map(recipe -> (SpatialCrafterRecipe) recipe)
+                        .filter(holder -> holder.value() instanceof SpatialCrafterRecipe)
+                        .map(holder -> (SpatialCrafterRecipe) holder.value())
                         .orElse(null);
             }
         }
     }
 
     @Override
-    public void load(CompoundTag tag) {
+    public void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         if (tag.contains("Energy")) {
-            energy.deserializeNBT(tag.get("Energy"));
+            energy.deserializeNBT(registries, tag.get("Energy"));
         }
         isDisabled = tag.getBoolean("isDisabled");
         if (tag.contains("Inventory")) {
-            itemHandler.deserializeNBT(tag.getCompound("Inventory"));
+            itemHandler.deserializeNBT(registries, tag.getCompound("Inventory"));
         }
         isProcessing = tag.getBoolean("isProcessing");
         processingProgress = tag.getInt("processingProgress");
@@ -449,32 +441,24 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
             ResourceLocation recipeId = ResourceLocation.tryParse(tag.getString("currentRecipe"));
             // Recipe will be resolved when level is available
         }
-        super.load(tag);
+        super.loadAdditional(tag, registries);
     }
 
     @Override
-    public void saveAdditional(CompoundTag tag) {
-       tag.put("Energy", energy.serializeNBT());
+    public void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+       tag.put("Energy", energy.serializeNBT(registries));
         tag.putBoolean("isDisabled", isDisabled);
-        tag.put("Inventory", itemHandler.serializeNBT());
+        tag.put("Inventory", itemHandler.serializeNBT(registries));
         tag.putBoolean("isProcessing", isProcessing);
         tag.putInt("processingProgress", processingProgress);
         tag.putInt("size", size);
         if (currentRecipe != null) {
-            tag.putString("currentRecipe", currentRecipe.getId().toString());
+            tag.putString("currentRecipe", currentRecipe.getMultiblockId().toString());
         }
     }
 
-    @Nonnull
-    @Override
-    public <T> LazyOptional<T> getCapability(@Nonnull Capability<T> cap, @Nullable Direction side) {
-        if (cap == ForgeCapabilities.ENERGY) {
-            return energyHandler.cast();
-        }
-        if (cap == ForgeCapabilities.ITEM_HANDLER) {
-            return itemHandlerLazyOptional.cast();
-        }
-        return super.getCapability(cap, side);
+    public CustomEnergyStorage getEnergyStorage() {
+        return energy;
     }
 
     public int getMaxEnergy() {

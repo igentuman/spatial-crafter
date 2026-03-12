@@ -89,9 +89,9 @@ dependencies {
     runtimeOnly "curse.maven:extreme-reactors-250277:7344744"
     runtimeOnly "curse.maven:zerocore-247921:7344742"
 
-    implementation "curse.maven:emi-580555:6420931"
+    compileOnly "curse.maven:emi-580555:6420931"
 
-    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+    implementation "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
     compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}"
     compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
 
@@ -151,7 +151,7 @@ tasks.named('processResources', ProcessResources).configure {
     ]
     inputs.properties replaceProperties
 
-    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+    filesMatching(['META-INF/neoforge.mods.toml', 'pack.mcmeta']) {
         expand replaceProperties + [project: project]
     }
 }

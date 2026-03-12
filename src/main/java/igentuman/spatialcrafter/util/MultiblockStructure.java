@@ -4,11 +4,11 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.*;
 
@@ -42,7 +42,7 @@ public class MultiblockStructure {
                         
                         BlockPos pos = new BlockPos(x, y, z);
                         String blockId = state.getString("Name");
-                        Block block = ForgeRegistries.BLOCKS.getValue(rlFromString(blockId));
+                        Block block = BuiltInRegistries.BLOCK.get(rlFromString(blockId));
                         
                         if (block != null) {
                             BlockState bs = block.defaultBlockState();

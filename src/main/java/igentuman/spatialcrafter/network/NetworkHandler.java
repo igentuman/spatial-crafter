@@ -1,22 +1,22 @@
 package igentuman.spatialcrafter.network;
 
 import igentuman.spatialcrafter.Main;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.network.NetworkRegistry;
-import net.minecraftforge.network.simple.SimpleChannel;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
+@EventBusSubscriber(modid = Main.MODID, bus = EventBusSubscriber.Bus.MOD)
 public class NetworkHandler {
     private static final String PROTOCOL_VERSION = "1";
-    
-    public static final SimpleChannel INSTANCE = NetworkRegistry.newSimpleChannel(
-            ResourceLocation.fromNamespaceAndPath(Main.MODID, "main"),
-            () -> PROTOCOL_VERSION,
-            PROTOCOL_VERSION::equals,
-            PROTOCOL_VERSION::equals
-    );
-    
-    public static void registerPackets() {
-        int id = 0;
-        INSTANCE.registerMessage(id++, SizeChangePacket.class, SizeChangePacket::encode, SizeChangePacket::decode, SizeChangePacket::handle);
+
+    @SubscribeEvent
+    public static void register(final RegisterPayloadHandlersEvent event) {
+        final PayloadRegistrar registrar = event.registrar(PROTOCOL_VERSION);
+        registrar.playToServer(
+                SizeChangePacket.TYPE,
+                SizeChangePacket.STREAM_CODEC,
+                SizeChangePacket::handle
+        );
     }
 }

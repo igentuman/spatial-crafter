@@ -17,15 +17,15 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RenderLevelStageEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import org.joml.Matrix4f;
 
 import java.util.concurrent.CopyOnWriteArrayList;
 
-@Mod.EventBusSubscriber(modid = Main.MODID, value = Dist.CLIENT)
+@EventBusSubscriber(modid = Main.MODID, value = Dist.CLIENT)
 public class SpatialCrafterOverlayHandler {
     
     public static final CopyOnWriteArrayList<BlockPos> spatialCrafterBlocks = new CopyOnWriteArrayList<>();
@@ -57,7 +57,7 @@ public class SpatialCrafterOverlayHandler {
                 SpatialCrafterRecipe currentRecipe = spatialCrafter.getCurrentRecipe();
                 if (currentRecipe instanceof SpatialCrafterRecipe && spatialCrafter.isProcessing()) {
                     PreviewRenderer.setStructure(currentRecipe.getStructure());
-                    PreviewRenderer.renderPreview(scanArea.getCenter(), event.getPoseStack(), event.getPartialTick(), event.getRenderTick());
+                    PreviewRenderer.renderPreview(scanArea.getCenter(), event.getPoseStack(), event.getPartialTick().getRealtimeDeltaTicks(), event.getRenderTick());
                     alpha = 0.065f;
                 }
                 scanArea = scanArea
@@ -101,9 +101,8 @@ public class SpatialCrafterOverlayHandler {
         poseStack.translate(-camX, -camY, -camZ);
         
         Tesselator tesselator = Tesselator.getInstance();
-        BufferBuilder buffer = tesselator.getBuilder();
         
-        buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+        BufferBuilder buffer = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
         
         Matrix4f matrix = poseStack.last().pose();
         
@@ -120,79 +119,79 @@ public class SpatialCrafterOverlayHandler {
         
         // Outer faces (normal box)
         // Bottom face
-        buffer.vertex(matrix, x1, y1, z1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x2, y1, z1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x2, y1, z2).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x1, y1, z2).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, x1, y1, z1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x2, y1, z1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x2, y1, z2).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x1, y1, z2).setColor(r, g, b, alpha);
         
         // Top face
-        buffer.vertex(matrix, x1, y2, z1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x1, y2, z2).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x2, y2, z2).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x2, y2, z1).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, x1, y2, z1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x1, y2, z2).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x2, y2, z2).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x2, y2, z1).setColor(r, g, b, alpha);
         
         // North face
-        buffer.vertex(matrix, x1, y1, z1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x1, y2, z1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x2, y2, z1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x2, y1, z1).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, x1, y1, z1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x1, y2, z1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x2, y2, z1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x2, y1, z1).setColor(r, g, b, alpha);
         
         // South face
-        buffer.vertex(matrix, x2, y1, z2).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x2, y2, z2).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x1, y2, z2).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x1, y1, z2).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, x2, y1, z2).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x2, y2, z2).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x1, y2, z2).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x1, y1, z2).setColor(r, g, b, alpha);
         
         // West face
-        buffer.vertex(matrix, x1, y1, z2).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x1, y2, z2).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x1, y2, z1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x1, y1, z1).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, x1, y1, z2).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x1, y2, z2).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x1, y2, z1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x1, y1, z1).setColor(r, g, b, alpha);
         
         // East face
-        buffer.vertex(matrix, x2, y1, z1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x2, y2, z1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x2, y2, z2).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x2, y1, z2).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, x2, y1, z1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x2, y2, z1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x2, y2, z2).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x2, y1, z2).setColor(r, g, b, alpha);
         
         // Inner faces (slightly offset inward to prevent z-fighting)
         // Bottom face (inner)
-        buffer.vertex(matrix, x1 + offset, y1 + offset, z1 + offset).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x1 + offset, y1 + offset, z2 - offset).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x2 - offset, y1 + offset, z2 - offset).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x2 - offset, y1 + offset, z1 + offset).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, x1 + offset, y1 + offset, z1 + offset).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x1 + offset, y1 + offset, z2 - offset).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x2 - offset, y1 + offset, z2 - offset).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x2 - offset, y1 + offset, z1 + offset).setColor(r, g, b, alpha);
         
         // Top face (inner)
-        buffer.vertex(matrix, x1 + offset, y2 - offset, z1 + offset).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x2 - offset, y2 - offset, z1 + offset).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x2 - offset, y2 - offset, z2 - offset).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x1 + offset, y2 - offset, z2 - offset).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, x1 + offset, y2 - offset, z1 + offset).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x2 - offset, y2 - offset, z1 + offset).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x2 - offset, y2 - offset, z2 - offset).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x1 + offset, y2 - offset, z2 - offset).setColor(r, g, b, alpha);
         
         // North face (inner)
-        buffer.vertex(matrix, x1 + offset, y1 + offset, z1 + offset).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x2 - offset, y1 + offset, z1 + offset).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x2 - offset, y2 - offset, z1 + offset).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x1 + offset, y2 - offset, z1 + offset).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, x1 + offset, y1 + offset, z1 + offset).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x2 - offset, y1 + offset, z1 + offset).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x2 - offset, y2 - offset, z1 + offset).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x1 + offset, y2 - offset, z1 + offset).setColor(r, g, b, alpha);
         
         // South face (inner)
-        buffer.vertex(matrix, x2 - offset, y1 + offset, z2 - offset).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x1 + offset, y1 + offset, z2 - offset).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x1 + offset, y2 - offset, z2 - offset).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x2 - offset, y2 - offset, z2 - offset).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, x2 - offset, y1 + offset, z2 - offset).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x1 + offset, y1 + offset, z2 - offset).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x1 + offset, y2 - offset, z2 - offset).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x2 - offset, y2 - offset, z2 - offset).setColor(r, g, b, alpha);
         
         // West face (inner)
-        buffer.vertex(matrix, x1 + offset, y1 + offset, z2 - offset).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x1 + offset, y1 + offset, z1 + offset).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x1 + offset, y2 - offset, z1 + offset).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x1 + offset, y2 - offset, z2 - offset).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, x1 + offset, y1 + offset, z2 - offset).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x1 + offset, y1 + offset, z1 + offset).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x1 + offset, y2 - offset, z1 + offset).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x1 + offset, y2 - offset, z2 - offset).setColor(r, g, b, alpha);
         
         // East face (inner)
-        buffer.vertex(matrix, x2 - offset, y1 + offset, z1 + offset).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x2 - offset, y1 + offset, z2 - offset).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x2 - offset, y2 - offset, z2 - offset).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, x2 - offset, y2 - offset, z1 + offset).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, x2 - offset, y1 + offset, z1 + offset).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x2 - offset, y1 + offset, z2 - offset).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x2 - offset, y2 - offset, z2 - offset).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, x2 - offset, y2 - offset, z1 + offset).setColor(r, g, b, alpha);
         
-        tesselator.end();
+        BufferUploader.drawWithShader(buffer.buildOrThrow());
         
         poseStack.popPose();
         RenderSystem.enableCull(); // Re-enable face culling

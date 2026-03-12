@@ -1,8 +1,10 @@
 package igentuman.spatialcrafter.util;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.PreparableReloadListener;
@@ -10,7 +12,7 @@ import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.world.level.block.Blocks;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -69,7 +71,7 @@ public class MultiblocksProvider implements PreparableReloadListener {
             Resource resource = entry.getValue();
 
             try {
-                CompoundTag nbt = NbtIo.readCompressed(resource.open());
+                CompoundTag nbt = NbtIo.readCompressed(resource.open(), NbtAccounter.unlimitedHeap());
 
                 // Validate that all blocks in the structure exist
                 if (validateStructureBlocks(nbt)) {
@@ -120,9 +122,9 @@ public class MultiblocksProvider implements PreparableReloadListener {
 
             try {
                 ResourceLocation blockLocation = rlFromString(blockId);
-                Block block = ForgeRegistries.BLOCKS.getValue(blockLocation);
+                Block block = BuiltInRegistries.BLOCK.get(blockLocation);
 
-                if (block == null || !blockLocation.getPath().equals(block.asItem().toString())) {
+                if (block == null || (block.defaultBlockState().is(Blocks.AIR) && !blockId.contains("minecraft:air"))) {
                     System.out.println("Missing block in structure: " + blockId);
                     return false;
                 }

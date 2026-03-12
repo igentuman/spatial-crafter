@@ -304,15 +304,14 @@ public class PreviewRenderer {
                 // Extract UV coordinates
                 float u = Float.intBitsToFloat(vertices[vertexIndex + 4]);
                 float v = Float.intBitsToFloat(vertices[vertexIndex + 5]);
-                
+
                 // Add vertex with custom alpha
-                buffer.vertex(pose, x, y, z)
-                      .color(r, g, b, alpha)
-                      .uv(u, v)
-                      .overlayCoords(overlay)
-                      .uv2(light)
-                      .normal(normal, (float)quadNormal.x, (float)quadNormal.y, (float)quadNormal.z)
-                      .endVertex();
+                buffer.addVertex(pose, x, y, z)
+                        .setColor(r, g, b, alpha)
+                        .setUv(u, v)
+                        .setOverlay(overlay)
+                        .setLight(light)
+                        .setNormal(poseStack.last(), (float)quadNormal.x, (float)quadNormal.y, (float)quadNormal.z);
             }
         }
     }
@@ -320,11 +319,10 @@ public class PreviewRenderer {
     private static void renderSimpleCube(PoseStack poseStack, net.minecraft.client.renderer.MultiBufferSource bufferSource) {
         // Fallback method to render a simple translucent cube
         Tesselator tessellator = Tesselator.getInstance();
-        BufferBuilder buffer = tessellator.getBuilder();
         
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
         
-        buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+        BufferBuilder buffer = tessellator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
         Matrix4f matrix = poseStack.last().pose();
         
         float alpha = interpolatedAlpha;
@@ -332,42 +330,42 @@ public class PreviewRenderer {
         
         // Render all 6 faces of the cube
         // Bottom face
-        buffer.vertex(matrix, 0, 0, 0).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 1, 0, 0).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 1, 0, 1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 0, 0, 1).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, 0, 0, 0).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 1, 0, 0).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 1, 0, 1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 0, 0, 1).setColor(r, g, b, alpha);
         
         // Top face
-        buffer.vertex(matrix, 0, 1, 1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 1, 1, 1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 1, 1, 0).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 0, 1, 0).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, 0, 1, 1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 1, 1, 1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 1, 1, 0).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 0, 1, 0).setColor(r, g, b, alpha);
         
         // North face
-        buffer.vertex(matrix, 0, 0, 0).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 0, 1, 0).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 1, 1, 0).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 1, 0, 0).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, 0, 0, 0).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 0, 1, 0).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 1, 1, 0).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 1, 0, 0).setColor(r, g, b, alpha);
         
         // South face
-        buffer.vertex(matrix, 1, 0, 1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 1, 1, 1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 0, 1, 1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 0, 0, 1).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, 1, 0, 1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 1, 1, 1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 0, 1, 1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 0, 0, 1).setColor(r, g, b, alpha);
         
         // West face
-        buffer.vertex(matrix, 0, 0, 1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 0, 1, 1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 0, 1, 0).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 0, 0, 0).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, 0, 0, 1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 0, 1, 1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 0, 1, 0).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 0, 0, 0).setColor(r, g, b, alpha);
         
         // East face
-        buffer.vertex(matrix, 1, 0, 0).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 1, 1, 0).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 1, 1, 1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 1, 0, 1).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, 1, 0, 0).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 1, 1, 0).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 1, 1, 1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 1, 0, 1).setColor(r, g, b, alpha);
         
-        tessellator.end();
+        BufferUploader.drawWithShader(buffer.buildOrThrow());
     }
     
     /**

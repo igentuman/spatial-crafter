@@ -1,43 +1,37 @@
 package igentuman.spatialcrafter.network;
 
+import igentuman.spatialcrafter.Main;
 import igentuman.spatialcrafter.block.SpatialCrafterBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.function.Supplier;
+public record SizeChangePacket(BlockPos pos, int newSize) implements CustomPacketPayload {
+    public static final Type<SizeChangePacket> TYPE = new Type<>(Main.rl("size_change"));
 
-public class SizeChangePacket {
-    private final BlockPos pos;
-    private final int newSize;
-    
-    public SizeChangePacket(BlockPos pos, int newSize) {
-        this.pos = pos;
-        this.newSize = newSize;
+    public static final StreamCodec<FriendlyByteBuf, SizeChangePacket> STREAM_CODEC = StreamCodec.composite(
+            BlockPos.STREAM_CODEC, SizeChangePacket::pos,
+            ByteBufCodecs.INT, SizeChangePacket::newSize,
+            SizeChangePacket::new
+    );
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
-    
-    public static void encode(SizeChangePacket packet, FriendlyByteBuf buffer) {
-        buffer.writeBlockPos(packet.pos);
-        buffer.writeInt(packet.newSize);
-    }
-    
-    public static SizeChangePacket decode(FriendlyByteBuf buffer) {
-        BlockPos pos = buffer.readBlockPos();
-        int newSize = buffer.readInt();
-        return new SizeChangePacket(pos, newSize);
-    }
-    
-    public static void handle(SizeChangePacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
-        NetworkEvent.Context context = contextSupplier.get();
+
+    public void handle(IPayloadContext context) {
         context.enqueueWork(() -> {
-            if (context.getSender() != null) {
-                BlockEntity be = context.getSender().level().getBlockEntity(packet.pos);
+            if (context.player() != null) {
+                BlockEntity be = context.player().level().getBlockEntity(pos);
                 if (be instanceof SpatialCrafterBlockEntity spatialCrafter) {
-                    spatialCrafter.setSize(packet.newSize);
+                    spatialCrafter.setSize(newSize);
                 }
             }
         });
-        context.setPacketHandled(true);
     }
 }

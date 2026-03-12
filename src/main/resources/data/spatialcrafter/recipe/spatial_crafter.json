@@ -25,7 +25,7 @@
     "#x#"
   ],
   "result": {
-    "item": "spatialcrafter:spatial_crafter"
+    "id": "spatialcrafter:spatial_crafter"
   },
   "show_notification": true
 }

@@ -8,10 +8,9 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.energy.IEnergyStorage;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.SlotItemHandler;
+import net.neoforged.neoforge.energy.IEnergyStorage;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.SlotItemHandler;
 
 import static igentuman.spatialcrafter.Setup.SPATIAL_CRAFTER_BLOCK;
 import static igentuman.spatialcrafter.Setup.SPATIAL_CRAFTER_CONTAINER;
@@ -24,14 +23,14 @@ public class SpatialCrafterContainer extends AbstractContainerMenu {
 
     public SpatialCrafterContainer(int windowId, BlockPos pos, Inventory playerInventory, Player player) {
         super(SPATIAL_CRAFTER_CONTAINER.get(), windowId);
-        blockEntity = (SpatialCrafterBlockEntity)player.getCommandSenderWorld().getBlockEntity(pos);
+        blockEntity = (SpatialCrafterBlockEntity)player.level().getBlockEntity(pos);
         this.playerEntity = player;
-        this.itemHandler = blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(null);
+        this.itemHandler = blockEntity.getItemHandler();
         if (itemHandler != null) {
             addCrafterInventory();
         }
-        addPlayerInventory(playerEntity.getInventory());
-        addPlayerHotbar(playerEntity.getInventory());
+        addPlayerInventory(playerInventory);
+        addPlayerHotbar(playerInventory);
     }
 
     private void addCrafterInventory() {
@@ -60,7 +59,7 @@ public class SpatialCrafterContainer extends AbstractContainerMenu {
 
     public int getEnergyScaled(int scale)
     {
-        return (int) (scale*((float)blockEntity.getEnergy()/(float)blockEntity.getMaxEnergy()));
+        return (int) (scale*((float)getEnergy()/(float)getMaxEnergy()));
     }
 
     public boolean isDisabled()
@@ -70,17 +69,17 @@ public class SpatialCrafterContainer extends AbstractContainerMenu {
 
 
     public int getEnergy() {
-        return blockEntity.getCapability(ForgeCapabilities.ENERGY).map(IEnergyStorage::getEnergyStored).orElse(0);
+        return blockEntity.getEnergyStorage().getEnergyStored();
     }
 
     @Override
     public ItemStack quickMoveStack(Player p_38941_, int p_38942_) {
-        return null;
+        return ItemStack.EMPTY;
     }
 
     @Override
     public boolean stillValid(Player playerIn) {
-        return stillValid(ContainerLevelAccess.create(blockEntity.getLevel(), blockEntity.getBlockPos()), playerEntity, SPATIAL_CRAFTER_BLOCK.get());
+        return stillValid(ContainerLevelAccess.create(blockEntity.getLevel(), blockEntity.getBlockPos()), playerIn, SPATIAL_CRAFTER_BLOCK.get());
     }
 
     public void checkboxClicked(int id, int val) {

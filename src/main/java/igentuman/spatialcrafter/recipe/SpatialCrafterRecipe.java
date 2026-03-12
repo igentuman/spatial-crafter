@@ -3,24 +3,30 @@ package igentuman.spatialcrafter.recipe;
 import igentuman.spatialcrafter.util.MultiblockStructure;
 import igentuman.spatialcrafter.util.MultiblocksProvider;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.Container;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class SpatialCrafterRecipe implements Recipe<Container> {
-    private final ResourceLocation id;
+public class SpatialCrafterRecipe implements Recipe<RecipeInput> {
     private final ResourceLocation multiblockId;
     private final List<ItemStack> outputs;
     private final List<EntityOutput> entityOutputs;
@@ -33,10 +39,9 @@ public class SpatialCrafterRecipe implements Recipe<Container> {
     private final HashMap<Long, BlockState> requiredBlockStatesCCW = new HashMap<>();
     private final HashMap<Long, BlockState> requiredBlockStatesOposite = new HashMap<>();
 
-    public SpatialCrafterRecipe(ResourceLocation id, ResourceLocation multiblockId, 
+    public SpatialCrafterRecipe(ResourceLocation multiblockId, 
                                List<ItemStack> outputs, List<EntityOutput> entityOutputs,
                                int processingTime, int energyConsumption, CompoundTag outputNbt, boolean doNotDestroy) {
-        this.id = id;
         this.multiblockId = multiblockId;
         this.outputs = outputs;
         this.entityOutputs = entityOutputs;
@@ -227,7 +232,7 @@ public class SpatialCrafterRecipe implements Recipe<Container> {
     }
 
     @Override
-    public boolean matches(Container container, Level level) {
+    public boolean matches(RecipeInput container, Level level) {
         // This will be handled by the block entity logic
         return true;
     }
@@ -237,7 +242,7 @@ public class SpatialCrafterRecipe implements Recipe<Container> {
     }
 
     @Override
-    public ItemStack assemble(Container container, RegistryAccess registryAccess) {
+    public ItemStack assemble(RecipeInput container, HolderLookup.Provider registryAccess) {
         return outputs.isEmpty() ? ItemStack.EMPTY : outputs.get(0).copy();
     }
 
@@ -247,13 +252,8 @@ public class SpatialCrafterRecipe implements Recipe<Container> {
     }
 
     @Override
-    public ItemStack getResultItem(RegistryAccess registryAccess) {
+    public ItemStack getResultItem(HolderLookup.Provider registryAccess) {
         return outputs.isEmpty() ? ItemStack.EMPTY : outputs.get(0);
-    }
-
-    @Override
-    public ResourceLocation getId() {
-        return id;
     }
 
     @Override
@@ -325,6 +325,23 @@ public class SpatialCrafterRecipe implements Recipe<Container> {
     }
 
     public static class EntityOutput {
+        public static final Codec<EntityOutput> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+                BuiltInRegistries.ENTITY_TYPE.byNameCodec().fieldOf("entity").forGetter(EntityOutput::getEntityType),
+                CompoundTag.CODEC.optionalFieldOf("nbt", new CompoundTag()).forGetter(EntityOutput::getNbt),
+                BlockPos.CODEC.optionalFieldOf("position", BlockPos.ZERO).forGetter(EntityOutput::getRelativePos),
+                Codec.INT.optionalFieldOf("count", 1).forGetter(EntityOutput::getCount)
+        ).apply(instance, EntityOutput::new));
+
+        public static final StreamCodec<RegistryFriendlyByteBuf, EntityOutput> STREAM_CODEC = StreamCodec.composite(
+                ByteBufCodecs.registry(Registries.ENTITY_TYPE), EntityOutput::getEntityType,
+                ByteBufCodecs.COMPOUND_TAG, EntityOutput::getNbt,
+                BlockPos.STREAM_CODEC, EntityOutput::getRelativePos,
+                ByteBufCodecs.VAR_INT, EntityOutput::getCount,
+                EntityOutput::new
+        );
+
+        public static final StreamCodec<RegistryFriendlyByteBuf, List<EntityOutput>> LIST_STREAM_CODEC = STREAM_CODEC.apply(ByteBufCodecs.list());
+
         private final EntityType<?> entityType;
         private final CompoundTag nbt;
         private final BlockPos relativePos;
