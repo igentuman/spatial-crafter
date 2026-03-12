@@ -5,9 +5,14 @@
   "energy_consumption": 1000,
   "outputs": [
     {
-      "item": "minecraft:emerald",
       "count": 1,
-      "nbt": "{Enchantments:[{id:\"minecraft:unbreaking\",lvl:3}]}"
+      "id": "minecraft:emerald",
+      "components": {
+        "minecraft:enchantments": {
+          "minecraft:unbreaking": 3
+        },
+        "minecraft:custom_data": "{SpatialCrafted:1b}"
+      }
     }
   ],
   "entity_outputs": [
@@ -16,6 +21,5 @@
       "count": 1,
       "position": [0, 1, 0]
     }
-  ],
-  "global_nbt": "{SpatialCrafted:1b}"
+  ]
 }

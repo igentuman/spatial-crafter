@@ -3,6 +3,7 @@ package igentuman.spatialcrafter.recipe;
 import igentuman.spatialcrafter.util.MultiblockStructure;
 import igentuman.spatialcrafter.util.MultiblocksProvider;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
@@ -21,6 +22,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 import java.util.HashMap;
 import java.util.List;
@@ -176,17 +178,17 @@ public class SpatialCrafterRecipe implements Recipe<RecipeInput> {
     
     private BlockState rotateBlockStateClockwise(BlockState state) {
         // Handle common directional properties
-        if (state.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING)) {
-            net.minecraft.core.Direction facing = state.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING);
-            net.minecraft.core.Direction rotatedFacing = facing.getClockWise();
-            return state.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING, rotatedFacing);
+        if (state.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
+            Direction facing = state.getValue(BlockStateProperties.HORIZONTAL_FACING);
+            Direction rotatedFacing = facing.getClockWise();
+            return state.setValue(BlockStateProperties.HORIZONTAL_FACING, rotatedFacing);
         }
         
-        if (state.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING)) {
-            net.minecraft.core.Direction facing = state.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING);
-            if (facing.getAxis() != net.minecraft.core.Direction.Axis.Y) { // Don't rotate up/down
-                net.minecraft.core.Direction rotatedFacing = facing.getClockWise();
-                return state.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING, rotatedFacing);
+        if (state.hasProperty(BlockStateProperties.FACING)) {
+            Direction facing = state.getValue(BlockStateProperties.FACING);
+            if (facing.getAxis() != Direction.Axis.Y) { // Don't rotate up/down
+                Direction rotatedFacing = facing.getClockWise();
+                return state.setValue(BlockStateProperties.FACING, rotatedFacing);
             }
         }
         
@@ -195,17 +197,17 @@ public class SpatialCrafterRecipe implements Recipe<RecipeInput> {
     
     private BlockState rotateBlockStateCounterClockwise(BlockState state) {
         // Handle common directional properties
-        if (state.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING)) {
-            net.minecraft.core.Direction facing = state.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING);
-            net.minecraft.core.Direction rotatedFacing = facing.getCounterClockWise();
-            return state.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING, rotatedFacing);
+        if (state.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
+            Direction facing = state.getValue(BlockStateProperties.HORIZONTAL_FACING);
+            Direction rotatedFacing = facing.getCounterClockWise();
+            return state.setValue(BlockStateProperties.HORIZONTAL_FACING, rotatedFacing);
         }
         
-        if (state.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING)) {
-            net.minecraft.core.Direction facing = state.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING);
-            if (facing.getAxis() != net.minecraft.core.Direction.Axis.Y) { // Don't rotate up/down
-                net.minecraft.core.Direction rotatedFacing = facing.getCounterClockWise();
-                return state.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING, rotatedFacing);
+        if (state.hasProperty(BlockStateProperties.FACING)) {
+            Direction facing = state.getValue(BlockStateProperties.FACING);
+            if (facing.getAxis() != Direction.Axis.Y) { // Don't rotate up/down
+                Direction rotatedFacing = facing.getCounterClockWise();
+                return state.setValue(BlockStateProperties.FACING, rotatedFacing);
             }
         }
         
@@ -214,17 +216,17 @@ public class SpatialCrafterRecipe implements Recipe<RecipeInput> {
     
     private BlockState rotateBlockStateOpposite(BlockState state) {
         // Handle common directional properties
-        if (state.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING)) {
-            net.minecraft.core.Direction facing = state.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING);
-            net.minecraft.core.Direction rotatedFacing = facing.getOpposite();
-            return state.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING, rotatedFacing);
+        if (state.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
+            Direction facing = state.getValue(BlockStateProperties.HORIZONTAL_FACING);
+            Direction rotatedFacing = facing.getOpposite();
+            return state.setValue(BlockStateProperties.HORIZONTAL_FACING, rotatedFacing);
         }
         
-        if (state.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING)) {
-            net.minecraft.core.Direction facing = state.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING);
-            if (facing.getAxis() != net.minecraft.core.Direction.Axis.Y) { // Don't rotate up/down
-                net.minecraft.core.Direction rotatedFacing = facing.getOpposite();
-                return state.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING, rotatedFacing);
+        if (state.hasProperty(BlockStateProperties.FACING)) {
+            Direction facing = state.getValue(BlockStateProperties.FACING);
+            if (facing.getAxis() != Direction.Axis.Y) { // Don't rotate up/down
+                Direction rotatedFacing = facing.getOpposite();
+                return state.setValue(BlockStateProperties.FACING, rotatedFacing);
             }
         }
         

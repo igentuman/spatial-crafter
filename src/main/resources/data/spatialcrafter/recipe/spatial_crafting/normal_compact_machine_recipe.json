@@ -5,7 +5,7 @@
   "energy_consumption": 100,
   "outputs": [
     {
-      "item": "compactmachines:machine_normal",
+      "id": "compactmachines:machine_normal",
       "count": 1
     }
   ]

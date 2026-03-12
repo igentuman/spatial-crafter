@@ -21,14 +21,13 @@ public class SpatialCrafterRecipeManager {
         return true;
     }
     
-    public static Optional<SpatialCrafterRecipe> findRecipe(Level level, HashMap<Long, BlockState> blockStates) {
+    public static Optional<RecipeHolder<SpatialCrafterRecipe>> findRecipe(Level level, HashMap<Long, BlockState> blockStates) {
         RecipeManager recipeManager = level.getRecipeManager();
         
         return recipeManager.getAllRecipesFor(SpatialCrafterRecipeType.INSTANCE)
                 .stream()
-                .map(RecipeHolder::value)
-                .filter(SpatialCrafterRecipeManager::isRecipeValid)
-                .filter(recipe -> recipe.matchesBlocks(blockStates))
+                .filter(holder -> isRecipeValid(holder.value()))
+                .filter(holder -> holder.value().matchesBlocks(blockStates))
                 .findFirst();
     }
     

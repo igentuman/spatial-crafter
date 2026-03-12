@@ -2,11 +2,11 @@
   "type": "spatialcrafter:spatial_crafting",
   "multiblock": "spatialcrafter:spatial_structures/creeper_altar.nbt",
   "do_not_destroy": true,
-  "processing_time": 200,
+  "processing_time": 100,
   "energy_consumption": 200,
   "outputs": [
     {
-      "item": "minecraft:gunpowder",
+      "id": "minecraft:gunpowder",
       "count": 2
     }
   ]

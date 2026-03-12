@@ -11,13 +11,15 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 
+import java.util.List;
+
 public class SpatialCrafterRecipeSerializer implements RecipeSerializer<SpatialCrafterRecipe> {
     public static final SpatialCrafterRecipeSerializer INSTANCE = new SpatialCrafterRecipeSerializer();
 
     public static final MapCodec<SpatialCrafterRecipe> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             ResourceLocation.CODEC.fieldOf("multiblock").forGetter(SpatialCrafterRecipe::getMultiblockId),
-            ItemStack.STRICT_CODEC.listOf().fieldOf("outputs").forGetter(SpatialCrafterRecipe::getOutputs),
-            SpatialCrafterRecipe.EntityOutput.CODEC.listOf().fieldOf("entity_outputs").forGetter(SpatialCrafterRecipe::getEntityOutputs),
+            ItemStack.STRICT_CODEC.listOf().optionalFieldOf("outputs", List.of()).forGetter(SpatialCrafterRecipe::getOutputs),
+            SpatialCrafterRecipe.EntityOutput.CODEC.listOf().optionalFieldOf("entity_outputs", List.of()).forGetter(SpatialCrafterRecipe::getEntityOutputs),
             Codec.INT.fieldOf("processing_time").forGetter(SpatialCrafterRecipe::getProcessingTime),
             Codec.INT.fieldOf("energy_consumption").forGetter(SpatialCrafterRecipe::getEnergyConsumption),
             CompoundTag.CODEC.optionalFieldOf("global_nbt", new CompoundTag()).forGetter(SpatialCrafterRecipe::getOutputNbt),

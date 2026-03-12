@@ -6,6 +6,7 @@ import igentuman.spatialcrafter.client.SpatialCrafterOverlayHandler;
 import igentuman.spatialcrafter.recipe.SpatialCrafterRecipe;
 import igentuman.spatialcrafter.recipe.SpatialCrafterRecipeManager;
 import igentuman.spatialcrafter.util.CustomEnergyStorage;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import igentuman.spatialcrafter.util.WorldUtil;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.BlockPos;
@@ -61,6 +62,7 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
     // Recipe processing fields
     private final ItemStackHandler itemHandler = createItemHandler();
     private SpatialCrafterRecipe currentRecipe;
+    private ResourceLocation currentRecipeId;
     private int processingProgress = 0;
     private boolean isProcessing = false;
     private HashMap<Long, BlockState> indexedBlockStates = new HashMap<>();
@@ -80,8 +82,16 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
     @Override
     public void onLoad() {
         super.onLoad();
-        if (level != null && level.isClientSide) {
-            SpatialCrafterOverlayHandler.addSpatialCrafterBlock(worldPosition);
+        if (level != null) {
+            if (level.isClientSide) {
+                SpatialCrafterOverlayHandler.addSpatialCrafterBlock(worldPosition);
+            }
+            if (currentRecipeId != null && currentRecipe == null) {
+                currentRecipe = level.getRecipeManager().byKey(currentRecipeId)
+                        .filter(holder -> holder.value() instanceof SpatialCrafterRecipe)
+                        .map(holder -> (SpatialCrafterRecipe) holder.value())
+                        .orElse(null);
+            }
         }
     }
 
@@ -237,10 +247,11 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         return states;
     }
 
-    public void startCrafting(SpatialCrafterRecipe craftingRecipe) {
+    public void startCrafting(RecipeHolder<SpatialCrafterRecipe> craftingRecipeHolder) {
         if (level == null || isProcessing) return;
-        currentRecipe = craftingRecipe;
-        if (!craftingRecipe.getDoNotDestroy()) {
+        currentRecipe = craftingRecipeHolder.value();
+        currentRecipeId = craftingRecipeHolder.id();
+        if (!currentRecipe.getDoNotDestroy()) {
             clearArea();
         }
         processingProgress = 0;
@@ -342,6 +353,7 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
 
         // Reset processing state
         currentRecipe = null;
+        currentRecipeId = null;
         processingProgress = 0;
         isProcessing = false;
         setChanged();
@@ -396,8 +408,8 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         tag.putBoolean("isProcessing", isProcessing);
         tag.putInt("processingProgress", processingProgress);
         tag.putInt("size", size);
-        if (currentRecipe != null) {
-            tag.putString("currentRecipe", currentRecipe.getMultiblockId().toString());
+        if (currentRecipeId != null) {
+            tag.putString("currentRecipe", currentRecipeId.toString());
         }
     }
 
@@ -413,10 +425,10 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         processingProgress = tag.getInt("processingProgress");
         size = tag.contains("size") ? size(tag.getInt("size")) : 5;
         
-        if (tag.contains("currentRecipe") && level != null) {
-            ResourceLocation recipeId = ResourceLocation.tryParse(tag.getString("currentRecipe"));
-            if (recipeId != null) {
-                currentRecipe = level.getRecipeManager().byKey(recipeId)
+        if (tag.contains("currentRecipe")) {
+            currentRecipeId = ResourceLocation.tryParse(tag.getString("currentRecipe"));
+            if (currentRecipeId != null && level != null) {
+                currentRecipe = level.getRecipeManager().byKey(currentRecipeId)
                         .filter(holder -> holder.value() instanceof SpatialCrafterRecipe)
                         .map(holder -> (SpatialCrafterRecipe) holder.value())
                         .orElse(null);
@@ -438,8 +450,7 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         size = tag.contains("size") ? size(tag.getInt("size")) : 5;
         
         if (tag.contains("currentRecipe")) {
-            ResourceLocation recipeId = ResourceLocation.tryParse(tag.getString("currentRecipe"));
-            // Recipe will be resolved when level is available
+            currentRecipeId = ResourceLocation.tryParse(tag.getString("currentRecipe"));
         }
         super.loadAdditional(tag, registries);
     }
@@ -452,8 +463,8 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         tag.putBoolean("isProcessing", isProcessing);
         tag.putInt("processingProgress", processingProgress);
         tag.putInt("size", size);
-        if (currentRecipe != null) {
-            tag.putString("currentRecipe", currentRecipe.getMultiblockId().toString());
+        if (currentRecipeId != null) {
+            tag.putString("currentRecipe", currentRecipeId.toString());
         }
     }
 
