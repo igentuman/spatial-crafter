@@ -149,9 +149,10 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
             return;
         }
         // Process crafting
-        if (isProcessing) {
+        if (isProcessing && currentRecipe != null) {
             processCrafting();
         } else if(level.getGameTime() % 40 == 0) {
+            isProcessing = false;
             scanForRecipe();
         }
         
@@ -165,7 +166,7 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
     }
 
     private void scanForRecipe() {
-        if (level == null || isProcessing) return;
+        if (level == null || (isProcessing && currentRecipe != null)) return;
         
         // Check if there's already a scan running
         if (currentScan != null && !currentScan.isDone()) {
