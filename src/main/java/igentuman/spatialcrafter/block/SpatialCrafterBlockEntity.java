@@ -260,6 +260,9 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         level.playSound(null, worldPosition, SPATIAL_CRAFTER_START.get(), SoundSource.BLOCKS, 0.8f, 1.0f);
 
         setChanged();
+        if (level != null && !level.isClientSide) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_ALL);
+        }
     }
 
     private void clearArea() {
@@ -357,6 +360,9 @@ public class SpatialCrafterBlockEntity extends BlockEntity {
         processingProgress = 0;
         isProcessing = false;
         setChanged();
+        if (level != null && !level.isClientSide) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_ALL);
+        }
     }
 
     private CustomEnergyStorage createEnergyStorage() {

@@ -95,7 +95,7 @@ dependencies {
     compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}"
     compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
 
-    implementation "curse.maven:multi-builder-tool-827020:7746090"
+    implementation "curse.maven:multi-builder-tool-827020:7750394"
 
     runtimeOnly "curse.maven:immersive-engineering-231951:6733669"
 

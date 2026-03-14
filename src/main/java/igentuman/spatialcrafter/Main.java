@@ -1,7 +1,6 @@
 package igentuman.spatialcrafter;
 
-import igentuman.spatialcrafter.client.SpatialCrafterScreen;
-import igentuman.spatialcrafter.network.NetworkHandler;
+import igentuman.spatialcrafter.network.SyncStructuresPacket;
 import igentuman.spatialcrafter.util.MultiblocksProvider;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTabs;
@@ -16,11 +15,11 @@ import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
-import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
-import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.event.OnDatapackSyncEvent;
 import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -38,7 +37,6 @@ public class Main
 
     public Main(IEventBus modEventBus, ModContainer modContainer) {
         Setup.init(modEventBus);
-        modEventBus.addListener(this::registerScreens);
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::addCreative);
         modEventBus.addListener(this::onModConfigEvent);
@@ -69,10 +67,6 @@ public class Main
     private void commonSetup(FMLCommonSetupEvent event) {
     }
 
-    public void registerScreens(RegisterMenuScreensEvent event) {
-        event.register(SPATIAL_CRAFTER_CONTAINER.get(), SpatialCrafterScreen::new);
-    }
-
     private void addCreative(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(SPATIAL_CRAFTER_ITEM.get());
@@ -89,6 +83,18 @@ public class Main
     @SubscribeEvent
     public static void onAddReloadListeners(AddReloadListenerEvent event) {
         event.addListener(MultiblocksProvider.getInstance());
+    }
+
+    @SubscribeEvent
+    public static void onDatapackSync(OnDatapackSyncEvent event) {
+        SyncStructuresPacket packet = SyncStructuresPacket.create();
+        if (event.getPlayer() != null) {
+            PacketDistributor.sendToPlayer(event.getPlayer(), packet);
+        } else {
+            for (net.minecraft.server.level.ServerPlayer player : event.getRelevantPlayers().toList()) {
+                PacketDistributor.sendToPlayer(player, packet);
+            }
+        }
     }
 
     public static ResourceLocation rlFromString(String name) {

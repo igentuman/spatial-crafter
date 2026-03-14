@@ -18,5 +18,10 @@ public class NetworkHandler {
                 SizeChangePacket.STREAM_CODEC,
                 SizeChangePacket::handle
         );
+        registrar.playToClient(
+                SyncStructuresPacket.TYPE,
+                SyncStructuresPacket.STREAM_CODEC,
+                SyncStructuresPacket::handle
+        );
     }
 }
