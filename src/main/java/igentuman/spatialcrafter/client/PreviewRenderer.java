@@ -49,6 +49,11 @@ public class PreviewRenderer {
     private static float particleIntensity = 0.5f;
     private static int particleTimer = 0;
 
+    // --- Baked geometry cache ------------------------------------------------
+    private static final StructureMesh mesh = new StructureMesh();
+    private static final FakeStructureLevel fakeLevel = new FakeStructureLevel();
+    private static MultiblockStructure builtStructure = null;
+
     public static void setStructure(MultiblockStructure structure) {
         PreviewRenderer.structure = structure;
     }
@@ -152,13 +157,20 @@ public class PreviewRenderer {
     public static boolean renderPreview(BlockPos center, PoseStack poseStack, float partialTicks, int renderTick) {
 
         if (structure == null) return false;
-        poseStack.pushPose();
 
         height = structure.getHeight();
         length = structure.getDepth();
         width = structure.getWidth();
 
-        Vec3 cameraPos = mc.gameRenderer.getMainCamera().getPosition();
+        // Rebuild baked geometry only when the selected structure changes.
+        if (structure != builtStructure) {
+            rebuildMesh();
+        }
+
+        // Advance the pulsing-alpha animation.
+        interpolatedAlpha += partialTicks * dir;
+        if (interpolatedAlpha >= 0.8f) dir = -0.005f;
+        if (interpolatedAlpha <= 0.5f) dir = 0.005f;
 
         // Update rotation animation only if enabled
         rotation += rotationSpeed * partialTicks;
@@ -166,206 +178,72 @@ public class PreviewRenderer {
             rotation -= 360.0f;
         }
 
+        poseStack.pushPose();
+
+        Vec3 cameraPos = mc.gameRenderer.getMainCamera().getPosition();
+
         // Translate to the center position relative to camera
-        poseStack.translate(center.getX() - cameraPos.x+0.5f, center.getY() - cameraPos.y +0.25, center.getZ() - cameraPos.z+0.5f);
-        
+        poseStack.translate(center.getX() - cameraPos.x + 0.5f, center.getY() - cameraPos.y + 0.25, center.getZ() - cameraPos.z + 0.5f);
+
         // Apply rotation around Y axis at the center
         poseStack.mulPose(Axis.YP.rotationDegrees(rotation));
-        
+
         // Apply scale
         float finalScale = 0.5f;
         poseStack.scale(finalScale, finalScale, finalScale);
 
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.disableDepthTest();
+        // Center the structure around its midpoint so rotation spins around the center.
+        poseStack.translate(-(width / 2.0f - 0.5f), -(height / 2.0f - 0.5f), -(length / 2.0f - 0.5f));
 
-        renderPreviewBlocks(poseStack, partialTicks);
-        
+        // Combine GL model-view (camera rotation) with poseStack (translation/rotation/scale) so the
+        // VBO drawWithShader call gets the full transform — BufferUploader.drawWithShader applies
+        // GL state automatically, but vbo.drawWithShader needs explicit matrices.
+        Matrix4f mv = new Matrix4f(RenderSystem.getModelViewMatrix()).mul(poseStack.last().pose());
+
+        // Baked blocks (VBOs) drawn as a translucent ghost (depth test off).
+        mesh.draw(mv, RenderSystem.getProjectionMatrix(), interpolatedAlpha, false);
+
+        poseStack.popPose();
+
         // Render particle effects if enabled
         if (particlesEnabled) {
             renderParticleEffects(center, partialTicks, renderTick);
         }
 
-        RenderSystem.enableDepthTest();
-        RenderSystem.disableBlend();
-        poseStack.popPose();
         return true;
     }
 
-    private static void renderPreviewBlocks(PoseStack poseStack, float partialTicks) {
-        Level world = mc.level;
-        if (world == null || structure == null) return;
-        
-        BlockRenderDispatcher blockRenderer = mc.getBlockRenderer();
-        
-        // Update alpha animation
-        interpolatedAlpha = interpolatedAlpha + partialTicks * dir;
-        if (interpolatedAlpha >= 0.8f) {
-            dir = -0.005f;
-        }
-        if (interpolatedAlpha <= 0.5f) {
-            dir = 0.005f;
-        }
-        
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.disableDepthTest();
-        
-        // Get the buffer source for rendering
-        var bufferSource = mc.renderBuffers().bufferSource();
-        
+    /**
+     * Populates the fake level with structure blocks (local coords, origin at 0,0,0)
+     * and re-bakes the mesh. Geometry is produced through {@code tesselateBlock} with a
+     * level view, so connected textures (CTM), model data and internal face culling all
+     * work correctly. Re-baking only happens when the structure changes, not every frame.
+     */
+    private static void rebuildMesh() {
+        if (structure == null) return;
+        fakeLevel.clear();
+
         Map<BlockPos, BlockState> blocks = structure.getBlocks();
-        
         for (Map.Entry<BlockPos, BlockState> entry : blocks.entrySet()) {
-            BlockPos structurePos = entry.getKey();
             BlockState blockState = entry.getValue();
-            
             if (blockState.isAir()) continue;
-            
-            // Calculate relative position from structure origin
+
+            BlockPos structurePos = entry.getKey();
             int xo = structurePos.getX() - structure.getMinX();
             int yo = structurePos.getY() - structure.getMinY();
             int zo = structurePos.getZ() - structure.getMinZ();
-            
-            // Position relative to structure center
-            double relativeX = xo - (width / 2.0 - 0.5);
-            double relativeY = yo - (height / 2.0 - 0.5);
-            double relativeZ = zo - (length / 2.0 - 0.5);
-            
-            poseStack.pushPose();
-            poseStack.translate(relativeX, relativeY, relativeZ);
-            
-            try {
-                // Render the block with transparency using translucent render type
-                renderTranslucentBlock(blockState, poseStack, bufferSource, interpolatedAlpha);
-            } catch (Exception e) {
-                renderSimpleCube(poseStack, bufferSource);
-            }
-            
-            poseStack.popPose();
-        }
-        
-        // Flush the buffer to ensure all blocks are rendered
-        bufferSource.endBatch();
-        
-        RenderSystem.enableDepthTest();
-        RenderSystem.disableBlend();
-    }
-    
-    private static void renderTranslucentBlock(BlockState blockState, PoseStack poseStack, 
-                                             net.minecraft.client.renderer.MultiBufferSource bufferSource, 
-                                             float alpha) {
-        BlockRenderDispatcher blockRenderer = mc.getBlockRenderer();
-        BakedModel model = blockRenderer.getBlockModel(blockState);
-        RandomSource random = RandomSource.create(42L);
-        
-        // Get translucent buffer for transparency
-        VertexConsumer buffer = bufferSource.getBuffer(RenderType.translucent());
-        
-        // Render all faces of the block model with custom alpha
-        for (Direction direction : Direction.values()) {
-            List<BakedQuad> quads = model.getQuads(blockState, direction, random);
-            renderQuadsWithAlpha(poseStack, buffer, quads, alpha, 15728880, OverlayTexture.NO_OVERLAY);
-        }
-        
-        // Render quads without specific direction (general quads)
-        List<BakedQuad> generalQuads = model.getQuads(blockState, null, random);
-        renderQuadsWithAlpha(poseStack, buffer, generalQuads, alpha, 15728880, OverlayTexture.NO_OVERLAY);
-    }
-    
-    private static void renderQuadsWithAlpha(PoseStack poseStack, VertexConsumer buffer, 
-                                           List<BakedQuad> quads, float alpha, 
-                                           int light, int overlay) {
-        Matrix4f pose = poseStack.last().pose();
-        Matrix3f normal = poseStack.last().normal();
-        
-        for (BakedQuad quad : quads) {
-            int[] vertices = quad.getVertices();
-            Vec3 quadNormal = new Vec3(quad.getDirection().getNormal().getX(), 
-                                     quad.getDirection().getNormal().getY(), 
-                                     quad.getDirection().getNormal().getZ());
-            
-            // Process each vertex (4 vertices per quad)
-            for (int i = 0; i < 4; i++) {
-                int vertexIndex = i * 8; // Each vertex has 8 integers of data
-                
-                // Extract position
-                float x = Float.intBitsToFloat(vertices[vertexIndex]);
-                float y = Float.intBitsToFloat(vertices[vertexIndex + 1]);
-                float z = Float.intBitsToFloat(vertices[vertexIndex + 2]);
-                
-                // Extract color (if available)
-                int color = vertices[vertexIndex + 3];
-                float r = ((color >> 16) & 0xFF) / 255.0f;
-                float g = ((color >> 8) & 0xFF) / 255.0f;
-                float b = (color & 0xFF) / 255.0f;
-                
-                // Extract UV coordinates
-                float u = Float.intBitsToFloat(vertices[vertexIndex + 4]);
-                float v = Float.intBitsToFloat(vertices[vertexIndex + 5]);
 
-                // Add vertex with custom alpha
-                buffer.addVertex(pose, x, y, z)
-                        .setColor(r, g, b, alpha)
-                        .setUv(u, v)
-                        .setOverlay(overlay)
-                        .setLight(light)
-                        .setNormal(poseStack.last(), (float)quadNormal.x, (float)quadNormal.y, (float)quadNormal.z);
-            }
+            fakeLevel.put(new BlockPos(xo, yo, zo), blockState);
         }
-    }
 
-    private static void renderSimpleCube(PoseStack poseStack, net.minecraft.client.renderer.MultiBufferSource bufferSource) {
-        // Fallback method to render a simple translucent cube
-        Tesselator tessellator = Tesselator.getInstance();
-        
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        
-        BufferBuilder buffer = tessellator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        Matrix4f matrix = poseStack.last().pose();
-        
-        float alpha = interpolatedAlpha;
-        float r = 0.8f, g = 0.8f, b = 0.8f; // Light gray color
-        
-        // Render all 6 faces of the cube
-        // Bottom face
-        buffer.addVertex(matrix, 0, 0, 0).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, 1, 0, 0).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, 1, 0, 1).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, 0, 0, 1).setColor(r, g, b, alpha);
-        
-        // Top face
-        buffer.addVertex(matrix, 0, 1, 1).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, 1, 1, 1).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, 1, 1, 0).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, 0, 1, 0).setColor(r, g, b, alpha);
-        
-        // North face
-        buffer.addVertex(matrix, 0, 0, 0).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, 0, 1, 0).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, 1, 1, 0).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, 1, 0, 0).setColor(r, g, b, alpha);
-        
-        // South face
-        buffer.addVertex(matrix, 1, 0, 1).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, 1, 1, 1).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, 0, 1, 1).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, 0, 0, 1).setColor(r, g, b, alpha);
-        
-        // West face
-        buffer.addVertex(matrix, 0, 0, 1).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, 0, 1, 1).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, 0, 1, 0).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, 0, 0, 0).setColor(r, g, b, alpha);
-        
-        // East face
-        buffer.addVertex(matrix, 1, 0, 0).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, 1, 1, 0).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, 1, 1, 1).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, 1, 0, 1).setColor(r, g, b, alpha);
-        
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
+        try {
+            mesh.rebuild(fakeLevel);
+        } catch (Exception e) {
+            // A bad model can throw during tessellation; drop the mesh and skip drawing it.
+            mesh.close();
+        }
+        // Mark as built regardless so a persistent failure doesn't re-bake every frame.
+        builtStructure = structure;
     }
     
     /**
